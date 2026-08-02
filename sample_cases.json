@@ -1,0 +1,121 @@
+{
+  "정상 공장 증축": {
+    "company_name": "대구정밀산업㈜",
+    "industry": "자동차부품 제조업",
+    "loan_type": "시설자금대출",
+    "loan_amount": 1200000000,
+    "loan_purpose": "기존 공장 증축",
+    "address": "대구광역시 달성군 가상산업로 101",
+    "start_date": "2026-03-01",
+    "end_date": "2026-08-31",
+    "facility_area": 1200,
+    "declared_progress": 85,
+    "documents": {
+      "사업계획서": true,
+      "공사계약서": true,
+      "건축허가서": true,
+      "착공신고서": true,
+      "시설배치도": true,
+      "견적서": true,
+      "세금계산서": true,
+      "기성내역서": true,
+      "현장사진": true,
+      "위치·촬영시각 포함 사진": true
+    },
+    "checks": {
+      "visible_change": true,
+      "progress_mismatch": false,
+      "gps_exists": true,
+      "exif_exists": true,
+      "editing_suspected": false,
+      "spatial_match": true,
+      "duplicate_suspected": false,
+      "old_satellite": false,
+      "low_quality": false
+    },
+    "images": [
+      "case1_before.png",
+      "case1_after.png",
+      "case1_submit.png"
+    ]
+  },
+  "미착공·공정률 과장 의심": {
+    "company_name": "경북스마트물류㈜",
+    "industry": "물류·창고업",
+    "loan_type": "시설자금대출",
+    "loan_amount": 1800000000,
+    "loan_purpose": "물류창고 신축",
+    "address": "경상북도 칠곡군 가상물류로 55",
+    "start_date": "2026-02-01",
+    "end_date": "2026-07-31",
+    "facility_area": 2500,
+    "declared_progress": 60,
+    "documents": {
+      "사업계획서": true,
+      "공사계약서": true,
+      "건축허가서": true,
+      "착공신고서": true,
+      "시설배치도": false,
+      "견적서": true,
+      "세금계산서": true,
+      "기성내역서": false,
+      "현장사진": true,
+      "위치·촬영시각 포함 사진": false
+    },
+    "checks": {
+      "visible_change": false,
+      "progress_mismatch": true,
+      "gps_exists": false,
+      "exif_exists": true,
+      "editing_suspected": false,
+      "spatial_match": true,
+      "duplicate_suspected": false,
+      "old_satellite": false,
+      "low_quality": true
+    },
+    "images": [
+      "case2_before.png",
+      "case2_after.png",
+      "case2_submit.png"
+    ]
+  },
+  "제출사진 조작·타 장소 의심": {
+    "company_name": "미래에너지솔루션㈜",
+    "industry": "태양광 발전업",
+    "loan_type": "시설자금대출",
+    "loan_amount": 900000000,
+    "loan_purpose": "태양광 발전시설 설치",
+    "address": "경상북도 의성군 가상태양광길 22",
+    "start_date": "2026-04-01",
+    "end_date": "2026-07-15",
+    "facility_area": 6000,
+    "declared_progress": 100,
+    "documents": {
+      "사업계획서": true,
+      "공사계약서": true,
+      "개발행위허가서": true,
+      "시설배치도": true,
+      "견적서": true,
+      "세금계산서": true,
+      "준공 관련 서류": false,
+      "현장사진": true,
+      "위치·촬영시각 포함 사진": false
+    },
+    "checks": {
+      "visible_change": false,
+      "progress_mismatch": true,
+      "gps_exists": false,
+      "exif_exists": false,
+      "editing_suspected": true,
+      "spatial_match": false,
+      "duplicate_suspected": true,
+      "old_satellite": false,
+      "low_quality": false
+    },
+    "images": [
+      "case3_before.png",
+      "case3_after.png",
+      "case3_submit.png"
+    ]
+  }
+}
