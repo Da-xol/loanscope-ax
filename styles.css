@@ -2607,3 +2607,108 @@ img {
   font-size: 10px;
   text-align: right;
 }
+
+
+/* =========================================================
+   v6.4 VWorld 고해상도 영상지도
+   ========================================================= */
+.st-key-vworld_imagery_panel {
+  margin: 18px 0 8px !important;
+  padding: 16px !important;
+  border: 1px solid #d9e6e2 !important;
+  border-radius: 15px !important;
+  background: #fbfdfc !important;
+}
+
+.vworld-panel-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.vworld-panel-title span {
+  color: #163f37 !important;
+  font-size: 17px;
+  font-weight: 850;
+}
+
+.vworld-panel-title small {
+  color: #788b86 !important;
+  font-size: 11px;
+  text-align: right;
+}
+
+.st-key-run_vworld_lookup .stButton,
+.st-key-run_vworld_lookup .stButton > button {
+  width: 100% !important;
+}
+
+.st-key-run_vworld_lookup .stButton > button {
+  min-height: 49px !important;
+  border: 1px solid #c8dcd7 !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  color: #166a58 !important;
+  -webkit-text-fill-color: #166a58 !important;
+  font-weight: 800 !important;
+}
+
+.st-key-run_vworld_lookup .stButton > button *,
+.st-key-run_vworld_lookup .stButton > button p {
+  color: #166a58 !important;
+  -webkit-text-fill-color: #166a58 !important;
+  font-weight: 800 !important;
+}
+
+.st-key-run_vworld_lookup .stButton > button:hover {
+  background: #edf8f5 !important;
+  border-color: #86c7b7 !important;
+}
+
+.st-key-vworld_result_image {
+  width: 100% !important;
+  margin: 14px 0 10px !important;
+  padding: 10px !important;
+  border: 1px solid #dde9e6 !important;
+  border-radius: 13px !important;
+  background: #f2f7f5 !important;
+  overflow: hidden !important;
+}
+
+.st-key-vworld_result_image [data-testid="stImage"] {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+.st-key-vworld_result_image [data-testid="stImage"] img {
+  display: block !important;
+  width: auto !important;
+  max-width: 100% !important;
+  max-height: 520px !important;
+  object-fit: contain !important;
+  margin: 0 auto !important;
+  border-radius: 9px !important;
+}
+
+@media (max-width: 760px) {
+  .st-key-vworld_imagery_panel {
+    padding: 13px 11px !important;
+  }
+
+  .vworld-panel-title {
+    display: block;
+  }
+
+  .vworld-panel-title small {
+    display: block;
+    margin-top: 4px;
+    text-align: left;
+  }
+
+  .st-key-vworld_result_image [data-testid="stImage"] img {
+    max-height: 320px !important;
+  }
+}

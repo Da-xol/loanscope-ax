@@ -1,5 +1,7 @@
 import base64
 import json
+import math
+import os
 from datetime import date, datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
@@ -51,6 +53,21 @@ NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 PLANETARY_COMPUTER_STAC_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
 SATELLITE_COLLECTION = "sentinel-2-l2a"
 SATELLITE_USER_AGENT = "LoanScopeAX-PoC/1.0 (single-address satellite lookup)"
+VWORLD_TILE_URL = (
+    "https://api.vworld.kr/req/wmts/1.0.0/"
+    "{key}/Satellite/{z}/{y}/{x}.jpeg"
+)
+
+
+def _secret_value(name: str) -> str:
+    """Read a secret from Streamlit Secrets first, then environment variables."""
+    try:
+        value = st.secrets.get(name)
+        if value:
+            return str(value).strip()
+    except Exception:
+        pass
+    return str(os.getenv(name, "")).strip()
 
 
 @st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
@@ -345,6 +362,129 @@ def validate_satellite_address() -> None:
         }
 
     st.session_state["validated_satellite_address"] = address
+
+
+
+def _latlon_to_tile(latitude: float, longitude: float, zoom: int) -> tuple[float, float]:
+    """Convert WGS84 latitude/longitude to fractional Web Mercator tile coordinates."""
+    latitude = max(-85.05112878, min(85.05112878, latitude))
+    scale = 2 ** zoom
+    x = (longitude + 180.0) / 360.0 * scale
+    lat_rad = math.radians(latitude)
+    y = (
+        1.0
+        - math.asinh(math.tan(lat_rad)) / math.pi
+    ) / 2.0 * scale
+    return x, y
+
+
+@st.cache_data(ttl=60 * 60 * 12, show_spinner=False)
+def render_vworld_satellite(
+    latitude: float,
+    longitude: float,
+    zoom: int,
+    tile_radius: int,
+    api_key: str,
+) -> bytes:
+    """
+    Download and stitch VWorld Satellite WMTS tiles around one coordinate.
+
+    The API key is used only on the Streamlit server. It is not embedded in
+    browser-side HTML or JavaScript.
+    """
+    if not api_key:
+        raise ValueError("VWorld API 인증키가 설정되지 않았습니다.")
+
+    fractional_x, fractional_y = _latlon_to_tile(latitude, longitude, zoom)
+    center_x = int(math.floor(fractional_x))
+    center_y = int(math.floor(fractional_y))
+    tile_size = 256
+    grid_size = tile_radius * 2 + 1
+
+    mosaic = Image.new(
+        "RGB",
+        (grid_size * tile_size, grid_size * tile_size),
+        "#eef3f1",
+    )
+
+    session = requests.Session()
+    session.headers.update(
+        {
+            "User-Agent": SATELLITE_USER_AGENT,
+            "Referer": "https://loanscope-ax.local/",
+        }
+    )
+
+    max_index = (2 ** zoom) - 1
+
+    for grid_y, tile_y in enumerate(
+        range(center_y - tile_radius, center_y + tile_radius + 1)
+    ):
+        for grid_x, tile_x in enumerate(
+            range(center_x - tile_radius, center_x + tile_radius + 1)
+        ):
+            wrapped_x = tile_x % (2 ** zoom)
+            if tile_y < 0 or tile_y > max_index:
+                continue
+
+            url = VWORLD_TILE_URL.format(
+                key=api_key,
+                z=zoom,
+                y=tile_y,
+                x=wrapped_x,
+            )
+            response = session.get(url, timeout=20)
+            response.raise_for_status()
+
+            content_type = response.headers.get("Content-Type", "")
+            if "image" not in content_type.lower():
+                raise RuntimeError(
+                    "VWorld가 이미지가 아닌 응답을 반환했습니다. "
+                    "인증키의 WMTS/TMS API 권한과 등록 URL을 확인해주세요."
+                )
+
+            tile = Image.open(BytesIO(response.content)).convert("RGB")
+            mosaic.paste(
+                tile,
+                (grid_x * tile_size, grid_y * tile_size),
+            )
+
+    # Locate the exact input coordinate inside the stitched tile grid.
+    local_x = (
+        (fractional_x - (center_x - tile_radius)) * tile_size
+    )
+    local_y = (
+        (fractional_y - (center_y - tile_radius)) * tile_size
+    )
+
+    # Draw a visible but compact target marker without extra dependencies.
+    marker_layer = Image.new("RGBA", mosaic.size, (0, 0, 0, 0))
+    from PIL import ImageDraw
+    draw = ImageDraw.Draw(marker_layer)
+    radius = 13
+    x0 = local_x - radius
+    y0 = local_y - radius
+    x1 = local_x + radius
+    y1 = local_y + radius
+    draw.ellipse(
+        (x0, y0, x1, y1),
+        fill=(230, 48, 67, 190),
+        outline=(255, 255, 255, 245),
+        width=3,
+    )
+    draw.ellipse(
+        (local_x - 3, local_y - 3, local_x + 3, local_y + 3),
+        fill=(255, 255, 255, 255),
+    )
+
+    rendered = Image.alpha_composite(
+        mosaic.convert("RGBA"),
+        marker_layer,
+    ).convert("RGB")
+
+    buffer = BytesIO()
+    rendered.save(buffer, format="JPEG", quality=91, optimize=True)
+    return buffer.getvalue()
 
 
 def lookup_satellite_image(
@@ -925,6 +1065,112 @@ elif menu == "LoanScope AX":
                             "대규모 부지·공장·창고·태양광·농지 변화 확인에는 활용할 수 있으나, "
                             "소형 건물의 세부 공정률 판독에는 한계가 있습니다."
                         )
+
+                        with st.container(key="vworld_imagery_panel"):
+                            st.markdown(
+                                """
+                                <div class="vworld-panel-title">
+                                  <span>현재 고해상도 영상지도</span>
+                                  <small>VWorld Satellite WMTS · 특정 날짜 영상 아님</small>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
+
+                            vworld_api_key = _secret_value("VWORLD_API_KEY")
+
+                            if not vworld_api_key:
+                                st.info(
+                                    "VWorld 인증키를 설정하면 같은 좌표의 "
+                                    "고해상도 최신 영상지도를 함께 표시합니다."
+                                )
+                                st.code(
+                                    'VWORLD_API_KEY = "발급받은_인증키"',
+                                    language="toml",
+                                )
+                                st.caption(
+                                    "Streamlit Community Cloud에서는 App settings → "
+                                    "Secrets에 등록합니다. 로컬에서는 "
+                                    ".streamlit/secrets.toml에 등록합니다."
+                                )
+                            else:
+                                vw_col1, vw_col2 = st.columns(2)
+                                with vw_col1:
+                                    vworld_zoom = st.selectbox(
+                                        "VWorld 확대 수준",
+                                        options=[17, 18, 19],
+                                        index=2,
+                                        format_func=lambda value: (
+                                            f"Zoom {value}"
+                                            + (" · 가장 가까이" if value == 19 else "")
+                                        ),
+                                        key="vworld_zoom",
+                                    )
+                                with vw_col2:
+                                    vworld_area = st.selectbox(
+                                        "표시 범위",
+                                        options=[1, 2],
+                                        index=0,
+                                        format_func=lambda value: (
+                                            "3 × 3 타일" if value == 1 else "5 × 5 타일"
+                                        ),
+                                        key="vworld_tile_radius",
+                                    )
+
+                                if st.button(
+                                    "현재 고해상도 영상지도 조회",
+                                    key="run_vworld_lookup",
+                                    use_container_width=True,
+                                ):
+                                    try:
+                                        with st.spinner(
+                                            "VWorld 고해상도 영상지도를 불러오고 있습니다."
+                                        ):
+                                            vworld_bytes = render_vworld_satellite(
+                                                satellite_result["latitude"],
+                                                satellite_result["longitude"],
+                                                vworld_zoom,
+                                                vworld_area,
+                                                vworld_api_key,
+                                            )
+                                            st.session_state["vworld_result"] = {
+                                                "png_bytes": vworld_bytes,
+                                                "latitude": satellite_result["latitude"],
+                                                "longitude": satellite_result["longitude"],
+                                                "zoom": vworld_zoom,
+                                                "tile_radius": vworld_area,
+                                                "source_item_id": scene["item_id"],
+                                            }
+                                    except Exception as exc:
+                                        st.session_state.pop("vworld_result", None)
+                                        st.error(
+                                            f"VWorld 영상지도 조회에 실패했습니다: {exc}"
+                                        )
+
+                                vworld_result = st.session_state.get("vworld_result")
+                                if vworld_result:
+                                    with st.container(
+                                        key="vworld_result_image"
+                                    ):
+                                        st.image(
+                                            vworld_result["png_bytes"],
+                                            caption=(
+                                                "VWorld 현재 제공 영상지도 · "
+                                                f'좌표 {vworld_result["latitude"]:.6f}, '
+                                                f'{vworld_result["longitude"]:.6f} · '
+                                                f'Zoom {vworld_result["zoom"]}'
+                                            ),
+                                            use_container_width=True,
+                                        )
+
+                                    st.caption(
+                                        "빨간 원은 입력 주소의 좌표입니다. "
+                                        "이 영상은 세부 위치 확인용이며, "
+                                        "사용자가 지정한 기준 날짜의 촬영영상이 아닙니다."
+                                    )
+                                    st.caption(
+                                        "출처: 국토교통부 디지털트윈국토 VWorld"
+                                    )
 
                 cols = st.columns(3)
                 for col, label, name in zip(cols, ["신청 전 공간영상", "최근 공간영상", "차주 제출 현장사진"], case["images"]):
