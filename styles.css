@@ -2492,3 +2492,99 @@ img {
     max-height: 260px !important;
   }
 }
+
+
+/* =========================================================
+   v6.3.2 주소 존재 확인 및 좌표 표시
+   ========================================================= */
+.st-key-address_validation_success,
+.st-key-address_validation_error {
+  width: 100% !important;
+  margin: 6px 0 14px !important;
+}
+
+.address-validation-card {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+
+.address-validation-card.success {
+  border: 1px solid #a9ddcf;
+  background: #edf9f6;
+}
+
+.address-validation-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #08745f !important;
+  font-size: 13px;
+}
+
+.address-validation-status strong {
+  color: #08745f !important;
+  font-weight: 850;
+}
+
+.address-validation-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #0ca884;
+  color: #ffffff !important;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.address-validation-name {
+  margin-top: 7px;
+  color: #234f46 !important;
+  font-size: 13px;
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
+.address-coordinate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.address-coordinate-grid > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1px solid #d5ebe5;
+  border-radius: 9px;
+  background: #ffffff;
+}
+
+.address-coordinate-grid span {
+  color: #718982 !important;
+  font-size: 11px;
+}
+
+.address-coordinate-grid b {
+  color: #153f36 !important;
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 560px) {
+  .address-coordinate-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .address-validation-card {
+    padding: 11px;
+  }
+}

@@ -282,6 +282,49 @@ def render_sentinel_rgb(
     return buffer.getvalue()
 
 
+
+def validate_satellite_address() -> None:
+    """
+    Validate the committed address value and save its coordinates.
+
+    Streamlit executes this callback when the text input value is committed
+    (Enter or focus change). The geocoding function is cached for 24 hours.
+    """
+    address = str(st.session_state.get("satellite_address", "")).strip()
+    previous_address = st.session_state.get("validated_satellite_address")
+
+    if not address:
+        st.session_state.pop("satellite_address_validation", None)
+        st.session_state.pop("validated_satellite_address", None)
+        return
+
+    # Do not request the same address repeatedly during unrelated reruns.
+    if (
+        previous_address == address
+        and st.session_state.get("satellite_address_validation")
+    ):
+        return
+
+    try:
+        location = geocode_address_free(address)
+        st.session_state["satellite_address_validation"] = {
+            "ok": True,
+            "input_address": address,
+            "display_name": location["display_name"],
+            "latitude": location["latitude"],
+            "longitude": location["longitude"],
+            "osm_type": location.get("osm_type"),
+        }
+    except Exception as exc:
+        st.session_state["satellite_address_validation"] = {
+            "ok": False,
+            "input_address": address,
+            "message": str(exc),
+        }
+
+    st.session_state["validated_satellite_address"] = address
+
+
 def lookup_satellite_image(
     *,
     address: str,
@@ -300,10 +343,23 @@ def lookup_satellite_image(
         location_label = f"직접 입력 좌표: {latitude:.6f}, {longitude:.6f}"
         geocode_source = "직접 입력"
     else:
-        location = geocode_address_free(address)
-        latitude = location["latitude"]
-        longitude = location["longitude"]
-        location_label = location["display_name"]
+        validated = st.session_state.get("satellite_address_validation")
+        validated_address = st.session_state.get("validated_satellite_address")
+
+        if (
+            validated
+            and validated.get("ok")
+            and validated_address == address.strip()
+        ):
+            latitude = float(validated["latitude"])
+            longitude = float(validated["longitude"])
+            location_label = validated["display_name"]
+        else:
+            location = geocode_address_free(address)
+            latitude = location["latitude"]
+            longitude = location["longitude"]
+            location_label = location["display_name"]
+
         geocode_source = "OpenStreetMap Nominatim"
 
     scene = find_nearest_sentinel_scene(
@@ -635,8 +691,65 @@ elif menu == "LoanScope AX":
                         "위성영상 조회 주소",
                         value=address,
                         key="satellite_address",
-                        help="한국 상세주소는 OpenStreetMap 데이터 상태에 따라 검색되지 않을 수 있습니다.",
+                        help=(
+                            "주소 입력 후 Enter를 누르거나 다른 항목을 선택하면 "
+                            "실제 주소 존재 여부와 위도·경도를 확인합니다."
+                        ),
+                        on_change=validate_satellite_address,
                     )
+
+                    address_validation = st.session_state.get(
+                        "satellite_address_validation"
+                    )
+                    validated_address = st.session_state.get(
+                        "validated_satellite_address"
+                    )
+
+                    if (
+                        address_validation
+                        and validated_address == satellite_address.strip()
+                    ):
+                        if address_validation.get("ok"):
+                            with st.container(key="address_validation_success"):
+                                st.markdown(
+                                    f"""
+                                    <div class="address-validation-card success">
+                                      <div class="address-validation-status">
+                                        <span class="address-validation-icon">✓</span>
+                                        <strong>주소 확인 완료</strong>
+                                      </div>
+                                      <div class="address-validation-name">
+                                        {address_validation["display_name"]}
+                                      </div>
+                                      <div class="address-coordinate-grid">
+                                        <div>
+                                          <span>위도</span>
+                                          <b>{address_validation["latitude"]:.6f}</b>
+                                        </div>
+                                        <div>
+                                          <span>경도</span>
+                                          <b>{address_validation["longitude"]:.6f}</b>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True,
+                                )
+                        else:
+                            with st.container(key="address_validation_error"):
+                                st.error(
+                                    "주소를 확인하지 못했습니다. "
+                                    f'{address_validation.get("message", "")}'
+                                )
+                                st.caption(
+                                    "주소를 시·군·구와 도로명 중심으로 간소화하거나 "
+                                    "아래의 위도·경도 직접 입력을 사용해주세요."
+                                )
+                    elif satellite_address.strip():
+                        st.caption(
+                            "주소 입력 후 Enter를 누르거나 다른 입력항목을 선택하면 "
+                            "좌표가 자동 확인됩니다."
+                        )
 
                     sat_col1, sat_col2, sat_col3 = st.columns(3)
                     with sat_col1:
