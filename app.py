@@ -1,15 +1,11 @@
 import base64
 import json
-import os
 from datetime import date
 from pathlib import Path
-from typing import Literal
 
 import streamlit as st
 import streamlit.components.v1 as components
 from PIL import ExifTags, Image
-from openai import OpenAI
-from pydantic import BaseModel, Field
 
 BASE = Path(__file__).parent
 ASSETS = BASE / "assets"
@@ -40,178 +36,6 @@ def extract_exif(uploaded):
     except Exception:
         pass
     return result
-
-
-class EvidenceItem(BaseModel):
-    category: Literal[
-        "시설변화",
-        "공정률",
-        "대상지일치",
-        "타장소의심",
-        "편집생성의심",
-        "화질한계",
-        "기타",
-    ]
-    finding: str
-    image_reference: Literal["신청 전", "최근", "제출사진", "복수 이미지"]
-    severity: Literal["낮음", "중간", "높음"]
-
-
-class SiteAnalysisResult(BaseModel):
-    visible_change: bool = Field(description="신청 전 대비 최근 영상에서 목적시설 관련 가시적 변화가 있는지")
-    estimated_progress_min: int = Field(ge=0, le=100)
-    estimated_progress_max: int = Field(ge=0, le=100)
-    progress_mismatch: bool = Field(description="차주 신고 공정률이 영상상 추정 범위와 유의하게 불일치하는지")
-    spatial_match: bool = Field(description="제출사진이 최근 공간영상의 대상지 및 주변 구조와 일치해 보이는지")
-    other_location_suspected: bool = Field(description="제출사진이 타 장소일 가능성을 시사하는 시각 신호가 있는지")
-    editing_suspected: bool = Field(description="제출사진에 합성·생성·과도한 편집 가능성을 시사하는 시각 신호가 있는지")
-    duplicate_suspected: bool = Field(description="세 이미지 사이에 부자연스러운 재사용·복제 가능성을 시사하는 신호가 있는지")
-    low_quality: bool = Field(description="해상도·각도·가림 등으로 판단이 제한되는지")
-    confidence: int = Field(ge=0, le=100)
-    summary: str
-    recommendation: Literal[
-        "원격확인 가능",
-        "추가 원본사진 요청",
-        "GPS·EXIF 확인",
-        "영상통화 확인",
-        "현장방문 권고",
-    ]
-    evidence: list[EvidenceItem]
-
-
-def _secret(name: str, default: str | None = None) -> str | None:
-    try:
-        value = st.secrets.get(name)
-        if value:
-            return str(value)
-    except Exception:
-        pass
-    return os.getenv(name, default)
-
-
-def _image_to_data_url(image_source) -> str:
-    if isinstance(image_source, (str, Path)):
-        path = Path(image_source)
-        raw = path.read_bytes()
-        suffix = path.suffix.lower()
-        mime = {
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".png": "image/png",
-            ".webp": "image/webp",
-        }.get(suffix, "application/octet-stream")
-    else:
-        raw = image_source.getvalue()
-        mime = getattr(image_source, "type", None) or "image/jpeg"
-
-    return f"data:{mime};base64," + base64.b64encode(raw).decode("ascii")
-
-
-def analyze_site_images(
-    before_image,
-    recent_image,
-    submitted_image,
-    *,
-    company_name: str,
-    address: str,
-    loan_purpose: str,
-    declared_progress: int,
-) -> SiteAnalysisResult:
-    api_key = _secret("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError(
-            "OPENAI_API_KEY가 설정되지 않았습니다. "
-            "Streamlit Cloud Secrets 또는 .streamlit/secrets.toml에 등록하세요."
-        )
-
-    model = _secret("OPENAI_MODEL", "gpt-5.6")
-    client = OpenAI(api_key=api_key, timeout=90.0, max_retries=2)
-
-    system_prompt = """
-당신은 은행 기업여신 시설자금의 현장확인을 지원하는 공간영상 분석 전문가다.
-세 이미지를 비교해 사실확인 보조 신호만 제공한다.
-
-원칙:
-1. 대출 승인·거절, 사기, 조작을 확정하지 않는다.
-2. 촬영각도·계절·시간·해상도 차이를 고려한다.
-3. 보이지 않는 부분은 추정해 단정하지 않는다.
-4. 편집·생성 의심은 시각적 단서만 평가하며 메타데이터 검증을 대체하지 않는다.
-5. 공정률은 보수적인 범위로 추정한다.
-6. 근거는 구조·배치·지붕·도로·경계·자재·굴착·차량 등 관찰 가능한 요소로 작성한다.
-7. 비교가 어려우면 low_quality=true로 하고 confidence를 낮춘다.
-"""
-
-    context = f"""
-기업명: {company_name}
-사업장 주소: {address}
-자금용도: {loan_purpose}
-차주 신고 공정률: {declared_progress}%
-
-이미지 순서:
-1. 신청 전 공간영상
-2. 최근 공간영상
-3. 차주 제출 현장사진
-
-progress_mismatch는 신고 공정률이 영상상 추정 범위를 벗어나거나 관찰 가능한 변화와 현저히 모순될 때만 true로 한다.
-spatial_match는 주변 도로, 인접 건물, 부지 경계, 지붕 형태 등 비교 가능한 특징을 기준으로 판단한다.
-"""
-
-    response = client.responses.parse(
-        model=model,
-        input=[
-            {"role": "system", "content": system_prompt},
-            {
-                "role": "user",
-                "content": [
-                    {"type": "input_text", "text": context},
-                    {
-                        "type": "input_image",
-                        "image_url": _image_to_data_url(before_image),
-                        "detail": "high",
-                    },
-                    {
-                        "type": "input_image",
-                        "image_url": _image_to_data_url(recent_image),
-                        "detail": "high",
-                    },
-                    {
-                        "type": "input_image",
-                        "image_url": _image_to_data_url(submitted_image),
-                        "detail": "high",
-                    },
-                ],
-            },
-        ],
-        text_format=SiteAnalysisResult,
-    )
-
-    result = response.output_parsed
-    if result is None:
-        raise RuntimeError("API가 구조화된 분석 결과를 반환하지 않았습니다.")
-    return result
-
-
-def _apply_ai_to_checks(
-    base_checks: dict,
-    ai_result: SiteAnalysisResult,
-    submitted_exif: dict | None,
-) -> dict:
-    checks = dict(base_checks)
-    checks["visible_change"] = ai_result.visible_change
-    checks["progress_mismatch"] = ai_result.progress_mismatch
-    checks["spatial_match"] = ai_result.spatial_match and not ai_result.other_location_suspected
-    checks["editing_suspected"] = ai_result.editing_suspected
-    checks["duplicate_suspected"] = ai_result.duplicate_suspected
-    checks["low_quality"] = ai_result.low_quality
-
-    if submitted_exif is not None:
-        checks["gps_exists"] = bool(submitted_exif.get("GPS"))
-        checks["exif_exists"] = bool(submitted_exif.get("촬영일시"))
-        if submitted_exif.get("편집 프로그램"):
-            checks["editing_suspected"] = True
-
-    return checks
-
 
 def calculate_score(checks, documents):
     deductions = []
@@ -459,10 +283,10 @@ elif menu == "LoanScope AX":
                     st.number_input("신청금액(원)", min_value=0, value=int(case["loan_amount"]), step=10_000_000)
                     loan_purpose = st.text_input("자금용도", case["loan_purpose"])
                 with r:
-                    address = st.text_input("사업장 주소", case["address"])
+                    st.text_input("사업장 주소", case["address"])
                     st.date_input("공사 시작일", value=date.fromisoformat(case["start_date"]))
                     st.date_input("공사 예정 완료일", value=date.fromisoformat(case["end_date"]))
-                    declared_progress = st.slider("차주 신고 공정률", 0, 100, int(case["declared_progress"]))
+                    st.slider("차주 신고 공정률", 0, 100, int(case["declared_progress"]))
     
                 st.markdown('<div id="loan-step-2" class="loan-section-anchor"></div><div class="loan-section-head"><div class="eyebrow">Step 02</div><h3>제출서류 확인</h3><p>시설자금의 목적과 공정단계에 필요한 핵심 증빙을 점검합니다.</p></div>', unsafe_allow_html=True)
                 cols = st.columns(2)
@@ -478,11 +302,8 @@ elif menu == "LoanScope AX":
                         st.caption(label)
                         st.image(str(ASSETS / name), use_container_width=True)
                 uploaded = st.file_uploader("차주 제출 현장사진 교체", type=["jpg", "jpeg", "png"])
-                submitted_exif = None
                 if uploaded:
-                    submitted_exif = extract_exif(uploaded)
-                    st.caption("업로드 파일 메타데이터 확인 결과")
-                    st.json(submitted_exif)
+                    st.json(extract_exif(uploaded))
     
                 st.markdown('<div id="loan-step-4" class="loan-section-anchor"></div><div class="loan-section-head"><div class="eyebrow">Step 04</div><h3>자동 분석·위험신호 확인</h3><p>영상 변화, 메타데이터, 공간구조와 중복 이미지 신호를 확인합니다.</p></div>', unsafe_allow_html=True)
                 checks = dict(case["checks"])
@@ -498,77 +319,12 @@ elif menu == "LoanScope AX":
                     checks["editing_suspected"] = st.toggle("편집·생성 의심 신호", value=checks["editing_suspected"])
                     checks["duplicate_suspected"] = st.toggle("유사 이미지 중복 의심", value=checks["duplicate_suspected"])
     
-                if st.button("현장확인 분석 실행", use_container_width=True, type="primary"):
-                    before_path = ASSETS / case["images"][0]
-                    recent_path = ASSETS / case["images"][1]
-                    submitted_source = uploaded if uploaded is not None else ASSETS / case["images"][2]
-
-                    try:
-                        with st.status("AI 현장확인 분석을 실행하고 있습니다.", expanded=True) as status:
-                            st.write("① 신청 전·최근 공간영상의 시설 변화를 비교합니다.")
-                            st.write("② 제출사진과 대상지 주변 구조의 일치성을 확인합니다.")
-                            st.write("③ 공정률 불일치와 편집·타 장소 의심 신호를 정리합니다.")
-
-                            ai_result = analyze_site_images(
-                                before_path,
-                                recent_path,
-                                submitted_source,
-                                company_name=company_name,
-                                address=address,
-                                loan_purpose=loan_purpose,
-                                declared_progress=declared_progress,
-                            )
-
-                            analyzed_checks = _apply_ai_to_checks(
-                                checks,
-                                ai_result,
-                                submitted_exif,
-                            )
-                            score_result = calculate_score(analyzed_checks, documents)
-
-                            st.session_state["ai_analysis"] = ai_result.model_dump()
-                            st.session_state["analysis_checks"] = analyzed_checks
-                            st.session_state["result"] = score_result
-                            st.session_state["analysis_case"] = case_name
-                            status.update(label="AI 현장확인 분석이 완료되었습니다.", state="complete")
-
-                    except Exception as exc:
-                        st.session_state.pop("ai_analysis", None)
-                        st.session_state.pop("analysis_checks", None)
-                        st.session_state.pop("result", None)
-                        st.error(f"분석 API 호출에 실패했습니다: {exc}")
+                if st.button("현장확인 분석 실행", use_container_width=True):
+                    st.session_state["result"] = calculate_score(checks, documents)
     
                 st.markdown('<div id="loan-step-5" class="loan-section-anchor"></div><div class="loan-section-head"><div class="eyebrow">Step 05</div><h3>심사결과</h3><p>확인 신뢰도와 위험신호를 종합하여 후속 조치를 제시합니다.</p></div>', unsafe_allow_html=True)
                 if "result" in st.session_state:
                     score, grade, visit, recommendation, deductions = st.session_state["result"]
-
-                    ai_data = st.session_state.get("ai_analysis")
-                    if ai_data:
-                        st.markdown("#### AI 비교분석 결과")
-                        c1, c2, c3 = st.columns(3)
-                        with c1:
-                            st.metric(
-                                "영상상 추정 공정률",
-                                f'{ai_data["estimated_progress_min"]}~{ai_data["estimated_progress_max"]}%',
-                            )
-                        with c2:
-                            st.metric("분석 신뢰도", f'{ai_data["confidence"]}%')
-                        with c3:
-                            st.metric("AI 권고", ai_data["recommendation"])
-
-                        st.info(ai_data["summary"])
-
-                        with st.expander("이미지 비교 근거 보기", expanded=True):
-                            for item in ai_data.get("evidence", []):
-                                st.markdown(
-                                    f'**[{item["severity"]}] {item["category"]} · '
-                                    f'{item["image_reference"]}**  \\n{item["finding"]}'
-                                )
-
-                        st.caption(
-                            "AI 결과는 영상 기반 심사보조 신호이며 조작·타 장소·공정률을 확정하지 않습니다. "
-                            "원본 파일, GPS·EXIF, 서류 및 필요 시 현장방문으로 확인해야 합니다."
-                        )
                     st.markdown(f'<div class="loan-result-card"><div class="metrics"><div class="metric"><small>확인 신뢰도</small><b>{score}점</b></div><div class="metric"><small>확인등급</small><b>{grade}</b></div><div class="metric"><small>현장방문 필요도</small><b>{visit}</b></div><div class="metric"><small>위험신호</small><b>{len(deductions)}건</b></div></div></div>', unsafe_allow_html=True)
                     st.markdown("#### 상세 위험신호")
                     if deductions:
