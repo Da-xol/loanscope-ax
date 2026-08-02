@@ -87,12 +87,12 @@ with st.container(key="global_header"):
     brand_col, nav_col, user_col = st.columns([0.26, 0.48, 0.26], vertical_alignment="center")
 
     with brand_col:
-        st.html(
-            f"""
-            <div class="smooth-brand">
-              <img src="{LOANSCOPE_LOGO}" alt="LoanScope AX">
-            </div>
-            """
+        st.button(
+            "LoanScope AX",
+            key="main_logo_home",
+            use_container_width=True,
+            on_click=set_main_menu,
+            args=("기능소개",),
         )
 
     with nav_col:
