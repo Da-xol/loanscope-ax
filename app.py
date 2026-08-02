@@ -742,15 +742,16 @@ elif menu == "LoanScope AX":
                     satellite_result = st.session_state.get("satellite_result")
                     if satellite_result:
                         scene = satellite_result["scene"]
-                        st.image(
-                            satellite_result["png_bytes"],
-                            caption=(
-                                f'실제 촬영일 {scene["captured_date"]} · '
-                                f'요청일 차이 {scene["date_gap"]}일 · '
-                                f'장면 구름량 {scene["cloud_cover"]}%'
-                            ),
-                            use_container_width=True,
-                        )
+                        with st.container(key="satellite_result_image"):
+                            st.image(
+                                satellite_result["png_bytes"],
+                                caption=(
+                                    f'실제 촬영일 {scene["captured_date"]} · '
+                                    f'요청일 차이 {scene["date_gap"]}일 · '
+                                    f'장면 구름량 {scene["cloud_cover"]}%'
+                                ),
+                                use_container_width=True,
+                            )
 
                         meta1, meta2, meta3, meta4 = st.columns(4)
                         with meta1:

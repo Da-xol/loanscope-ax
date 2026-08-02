@@ -2428,3 +2428,67 @@ img {
     min-width: 0 !important;
   }
 }
+
+
+/* =========================================================
+   v6.3.1 위성사진 결과 크기 제한
+   원본 데이터는 유지하고 화면 표시 크기만 제한합니다.
+   ========================================================= */
+.st-key-satellite_result_image {
+  width: 100% !important;
+  margin: 14px auto 16px !important;
+  padding: 12px !important;
+  border: 1px solid #dce9e5 !important;
+  border-radius: 14px !important;
+  background: #f7fbfa !important;
+  overflow: hidden !important;
+}
+
+.st-key-satellite_result_image [data-testid="stImage"] {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+.st-key-satellite_result_image [data-testid="stImage"] img {
+  display: block !important;
+  width: auto !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: 520px !important;
+  margin: 0 auto !important;
+  object-fit: contain !important;
+  border-radius: 10px !important;
+}
+
+.st-key-satellite_result_image [data-testid="stImageCaption"] {
+  width: 100% !important;
+  margin-top: 8px !important;
+  text-align: center !important;
+  color: #607872 !important;
+  font-size: 12px !important;
+}
+
+@media (max-width: 1024px) {
+  .st-key-satellite_result_image [data-testid="stImage"] img {
+    max-height: 420px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .st-key-satellite_result_image {
+    padding: 8px !important;
+    margin-block: 10px 12px !important;
+  }
+
+  .st-key-satellite_result_image [data-testid="stImage"] img {
+    max-height: 320px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .st-key-satellite_result_image [data-testid="stImage"] img {
+    max-height: 260px !important;
+  }
+}
