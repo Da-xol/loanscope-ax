@@ -1,22 +1,15 @@
-# LoanScope AX Beta v2
+# LoanScope AX Beta v3.3
 
-## 주요 개선
-- 상단 메뉴: 기능소개 / LoanScope AX 실행 / QnA
-- 민트·딥민트·네이비 기반 전문 UI
-- iM 캐릭터 이미지 활용
-- 반응형 모바일·태블릿 레이아웃
-- 연결품의번호·연결신청번호 표시
-- 좌측 진행단계 미니 인덱스
-- 기존 점수 산출·EXIF 분석 기능 유지
+## 시안 동일 구현
+- iM뱅크형 상단 헤더 및 대분류 메뉴
+- 민트 기반 히어로 배너
+- 01 LoanScope AX란?
+- 02 LoanScope AX 흐름
+- 03 근거 및 활용 사례
+- 04 주요 분석 항목
+- 05 기대 효과
+- 06 보안 및 개인정보 보호
+- 생성 시안과 동일한 카드 배치, 여백, 색상, 타이포그래피 체계 적용
 
-## 실행
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
-
-## Streamlit Cloud
-기존 GitHub 저장소의 파일을 이번 버전으로 교체하고 Commit하면 자동 재배포됩니다.
-
-## v2.1 수정
-- Streamlit Cloud에서 깨지던 캐릭터 이미지를 Base64 임베드 방식으로 변경
+## 배포
+기존 GitHub 저장소에서 `app.py`와 `README.md`를 교체합니다.
