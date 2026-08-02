@@ -1403,3 +1403,497 @@ div[role="radiogroup"] label:has(input:checked) p{color:#078d78!important}
     width: 158px !important;
   }
 }
+
+
+/* =========================================================
+   v6.2 responsive layout hardening
+   Streamlit column layouts must be explicitly overridden.
+   ========================================================= */
+
+/* Prevent page-wide horizontal overflow. */
+html, body,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+[data-testid="stMainBlockContainer"] {
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+img {
+  max-width: 100%;
+}
+
+/* ---------- Tablet ---------- */
+@media (max-width: 1024px) {
+  /* Header */
+  .st-key-global_header > div {
+    width: 100% !important;
+    padding-inline: 16px !important;
+  }
+
+  .st-key-global_header > div > [data-testid="stHorizontalBlock"] {
+    gap: 10px !important;
+  }
+
+  .st-key-global_header > div > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(1) {
+    flex: 0 0 205px !important;
+    width: 205px !important;
+    min-width: 0 !important;
+  }
+
+  .st-key-global_header > div > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2) {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  .st-key-global_header > div > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3) {
+    flex: 0 0 86px !important;
+    width: 86px !important;
+    min-width: 0 !important;
+  }
+
+  /* Feature page */
+  .hero {
+    grid-template-columns: minmax(0, 1fr) 190px !important;
+    gap: 18px !important;
+    padding: 28px 22px !important;
+  }
+
+  .hero-copy {
+    grid-column: 1 / -1 !important;
+  }
+
+  .about {
+    grid-template-columns: 1fr !important;
+  }
+
+  .capgrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .mid,
+  .bottom {
+    grid-template-columns: 1fr !important;
+  }
+
+  .bottom .card:last-child {
+    grid-column: auto !important;
+  }
+
+  /* LoanScope workspace: sidebar remains left only on wide tablet. */
+  .st-key-loan_page {
+    padding-inline: 16px !important;
+  }
+
+  .st-key-loan_workspace > div > [data-testid="stHorizontalBlock"] {
+    gap: 16px !important;
+  }
+
+  .st-key-loan_workspace > div > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child {
+    flex: 0 0 230px !important;
+    width: 230px !important;
+    min-width: 0 !important;
+  }
+
+  .st-key-loan_workspace > div > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child {
+    flex: 1 1 0 !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  .st-key-loan_workspace .loan-nav {
+    width: 100% !important;
+  }
+}
+
+/* ---------- Mobile / narrow tablet ---------- */
+@media (max-width: 760px) {
+  /* Remove excessive Streamlit main padding. */
+  [data-testid="stMainBlockContainer"] {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  /* Header becomes exactly two rows:
+     row 1 logo + user, row 2 three menu buttons. */
+  .st-key-global_header {
+    position: sticky !important;
+    top: 0 !important;
+    width: 100% !important;
+  }
+
+  .st-key-global_header > div {
+    width: 100% !important;
+    padding: 6px 12px 0 !important;
+  }
+
+  .st-key-global_header > div > [data-testid="stHorizontalBlock"] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-rows: 48px 48px !important;
+    width: 100% !important;
+    min-height: 102px !important;
+    gap: 0 8px !important;
+    align-items: center !important;
+  }
+
+  .st-key-global_header > div > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: none !important;
+  }
+
+  .st-key-global_header > div > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(1) {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    justify-content: flex-start !important;
+  }
+
+  .st-key-global_header > div > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2) {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+  }
+
+  .st-key-global_header > div > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3) {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    width: auto !important;
+    justify-content: flex-end !important;
+  }
+
+  /* Inner three navigation columns. */
+  .st-key-global_header > div > [data-testid="stHorizontalBlock"]
+  > [data-testid="stColumn"]:nth-child(2)
+  [data-testid="stHorizontalBlock"] {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    min-height: 48px !important;
+    gap: 4px !important;
+  }
+
+  .st-key-global_header > div > [data-testid="stHorizontalBlock"]
+  > [data-testid="stColumn"]:nth-child(2)
+  [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: none !important;
+  }
+
+  .st-key-global_header .stButton,
+  .st-key-global_header .stButton > button {
+    width: 100% !important;
+  }
+
+  .st-key-global_header .stButton > button {
+    min-height: 48px !important;
+    height: 48px !important;
+    padding: 0 2px !important;
+    font-size: 13px !important;
+    white-space: nowrap !important;
+  }
+
+  .st-key-global_header .stButton > button[kind="primary"]::after,
+  .st-key-global_header .stButton > button[data-testid="baseButton-primary"]::after {
+    left: 12% !important;
+    right: 12% !important;
+  }
+
+  .smooth-user {
+    width: auto !important;
+    min-height: 48px !important;
+    gap: 6px !important;
+  }
+
+  .smooth-user-name,
+  .smooth-divider,
+  .smooth-chevron {
+    display: none !important;
+  }
+
+  .smooth-avatar {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  /* Feature intro */
+  .hero {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    min-height: auto !important;
+    padding: 24px 16px !important;
+    gap: 16px !important;
+  }
+
+  .hero h1 {
+    font-size: clamp(31px, 10vw, 40px) !important;
+    letter-spacing: -1.5px !important;
+  }
+
+  .hero-copy,
+  .chars {
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+
+  .hero-copy {
+    font-size: 13px !important;
+    line-height: 1.75 !important;
+  }
+
+  .hero-copy br {
+    display: none;
+  }
+
+  .chars {
+    justify-content: center !important;
+    padding-right: 0 !important;
+  }
+
+  .page {
+    padding: 14px 12px 0 !important;
+  }
+
+  .card {
+    padding: 14px 12px !important;
+    border-radius: 14px !important;
+  }
+
+  .capgrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .cap {
+    min-height: 122px !important;
+  }
+
+  .mid,
+  .bottom {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .case {
+    grid-template-columns: 82px minmax(0, 1fr) !important;
+  }
+
+  .case img {
+    width: 82px !important;
+    height: 68px !important;
+  }
+
+  .effects,
+  .security {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Keep process image scrollable inside its own card only. */
+  .flow-image-shell {
+    width: 100% !important;
+    overflow-x: auto !important;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* LoanScope page */
+  .st-key-loan_page {
+    padding: 14px 12px 42px !important;
+  }
+
+  .st-key-loan_page .notice {
+    font-size: 11px !important;
+    line-height: 1.6 !important;
+  }
+
+  /* Critical fix:
+     turn Streamlit's sidebar/main horizontal block into one column. */
+  .st-key-loan_workspace > div > [data-testid="stHorizontalBlock"] {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .st-key-loan_workspace > div > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
+  .st-key-loan_workspace [data-testid="stColumn"] {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    flex: none !important;
+  }
+
+  .st-key-loan_workspace > div > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 0 12px !important;
+  }
+
+  .st-key-loan_workspace .st-key-loan_nav {
+    position: sticky !important;
+    top: 102px !important;
+    z-index: 900 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: rgba(247, 251, 250, .97) !important;
+    backdrop-filter: blur(10px);
+  }
+
+  .st-key-loan_workspace .loan-nav {
+    position: static !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(72px, 1fr)) !important;
+    width: 100% !important;
+    min-width: 430px !important;
+    gap: 5px !important;
+    padding: 8px !important;
+    margin: 0 !important;
+    border-radius: 12px !important;
+    overflow: visible !important;
+    box-shadow: 0 5px 18px rgba(18, 67, 58, .08) !important;
+  }
+
+  /* Horizontal scrolling belongs to the Streamlit wrapper. */
+  .st-key-loan_workspace .st-key-loan_nav > div,
+  .st-key-loan_workspace .st-key-loan_nav [data-testid="stVerticalBlock"] {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .loan-nav-case {
+    display: none !important;
+  }
+
+  .loan-link {
+    display: flex !important;
+    min-width: 72px !important;
+    min-height: 58px !important;
+    padding: 7px 4px !important;
+    margin: 0 !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    border-radius: 9px !important;
+  }
+
+  .loan-link .n {
+    width: 23px !important;
+    height: 23px !important;
+    margin: 0 auto 4px !important;
+  }
+
+  .loan-link b {
+    font-size: 10px !important;
+    white-space: nowrap !important;
+  }
+
+  .loan-link small {
+    display: none !important;
+  }
+
+  .loan-section-anchor {
+    scroll-margin-top: 188px !important;
+  }
+
+  /* Every two-column form and every three-image row becomes vertical. */
+  .st-key-loan_workspace [data-testid="stHorizontalBlock"] {
+    flex-wrap: wrap !important;
+  }
+
+  .st-key-loan_workspace [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+
+  .loan-section-head h3 {
+    font-size: 21px !important;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* QnA */
+  .qna-hero {
+    padding: 28px 16px !important;
+  }
+
+  .qna-page {
+    padding-inline: 12px !important;
+  }
+
+  .qna-intro {
+    align-items: flex-start !important;
+  }
+
+  .qna-item summary {
+    grid-template-columns: 1fr auto !important;
+  }
+
+  .qna-category {
+    grid-column: 1 !important;
+  }
+
+  .qna-question {
+    grid-column: 1 !important;
+  }
+
+  .qna-plus {
+    grid-column: 2 !important;
+    grid-row: 1 / span 2 !important;
+  }
+}
+
+/* ---------- Small phones ---------- */
+@media (max-width: 430px) {
+  .st-key-global_header > div {
+    padding-inline: 9px !important;
+  }
+
+  .st-key-global_header > div > [data-testid="stHorizontalBlock"] {
+    grid-template-columns: minmax(0, 1fr) 38px !important;
+  }
+
+  .smooth-bell {
+    display: none !important;
+  }
+
+  .capgrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .case {
+    grid-template-columns: 1fr !important;
+  }
+
+  .case img {
+    width: 100% !important;
+    height: 150px !important;
+  }
+
+  .metrics {
+    grid-template-columns: 1fr !important;
+  }
+
+  .st-key-loan_workspace .loan-nav {
+    min-width: 390px !important;
+  }
+
+  .qna-hero-visual {
+    display: none !important;
+  }
+
+  .qna-intro {
+    display: block !important;
+  }
+
+  .qna-count {
+    margin-top: 12px !important;
+  }
+}

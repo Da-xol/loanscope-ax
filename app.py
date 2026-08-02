@@ -199,10 +199,11 @@ with st.container(key="global_header"):
         st.html(
             f"""
             <div class="smooth-user">
+              <span class="smooth-bell" aria-hidden="true"></span>
               <span class="smooth-divider"></span>
               <span class="smooth-avatar"><img src="{CHAR_PRO}" alt="사용자 캐릭터"></span>
               <span class="smooth-user-name">심사역 김IM</span>
-              <span class="smooth-chevron"></span>
+              <span class="smooth-chevron">⌄</span>
             </div>
             """
         )
