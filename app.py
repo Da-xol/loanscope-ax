@@ -10,7 +10,7 @@ import numpy as np
 import planetary_computer
 import rasterio
 import requests
-from PIL import ExifTags, Image
+from PIL import ExifTags, Image, ImageEnhance, ImageFilter, ImageOps
 from pystac_client import Client
 from rasterio.enums import Resampling
 from rasterio.windows import Window
@@ -183,7 +183,7 @@ def _read_band_window(
     latitude: float,
     longitude: float,
     radius_meters: int,
-    output_size: int = 640,
+    output_size: int = 720,
 ) -> np.ndarray:
     """Read a square band window centered on the requested coordinate."""
     with rasterio.Env(
@@ -221,30 +221,52 @@ def _read_band_window(
 
 
 def _stretch_rgb(red: np.ndarray, green: np.ndarray, blue: np.ndarray) -> Image.Image:
-    """Apply a percentile stretch suitable for Sentinel-2 true-color display."""
+    """
+    Produce a clearer Sentinel-2 true-color preview.
+
+    The processing improves display contrast and sharpness only. It does not
+    create spatial detail beyond the source 10 m pixels.
+    """
     stack = np.stack([red, green, blue], axis=-1)
     valid = np.all(stack > 0, axis=-1)
 
     if not np.any(valid):
         raise ValueError("대상 좌표 주변의 유효한 위성 픽셀을 읽지 못했습니다.")
 
-    output = np.zeros_like(stack, dtype=np.uint8)
+    # Use one luminance-based range for all channels to preserve natural color.
+    luminance = (
+        stack[..., 0] * 0.299
+        + stack[..., 1] * 0.587
+        + stack[..., 2] * 0.114
+    )
+    valid_luminance = luminance[valid]
+    low, high = np.percentile(valid_luminance, [1.0, 99.2])
 
-    for channel_index in range(3):
-        channel = stack[..., channel_index]
-        values = channel[valid]
-        low, high = np.percentile(values, [2, 98])
+    if high <= low:
+        high = low + 1.0
 
-        if high <= low:
-            high = low + 1.0
+    scaled = np.clip((stack - low) / (high - low), 0, 1)
 
-        scaled = np.clip((channel - low) / (high - low), 0, 1)
-        # Slight gamma lift improves dark Sentinel-2 scenes.
-        scaled = np.power(scaled, 0.82)
-        output[..., channel_index] = (scaled * 255).astype(np.uint8)
+    # Gentle gamma lift without destroying bright roofs and roads.
+    scaled = np.power(scaled, 0.88)
+    output = (scaled * 255).astype(np.uint8)
+    output[~valid] = 238
 
-    output[~valid] = 235
-    return Image.fromarray(output, mode="RGB")
+    image = Image.fromarray(output, mode="RGB")
+
+    # Local display enhancement. These values are intentionally conservative.
+    image = ImageOps.autocontrast(image, cutoff=0.5)
+    image = ImageEnhance.Contrast(image).enhance(1.12)
+    image = ImageEnhance.Color(image).enhance(1.08)
+    image = ImageEnhance.Sharpness(image).enhance(1.35)
+    image = image.filter(
+        ImageFilter.UnsharpMask(
+            radius=1.2,
+            percent=115,
+            threshold=3,
+        )
+    )
+    return image
 
 
 @st.cache_data(ttl=60 * 60 * 6, show_spinner=False)
@@ -780,10 +802,17 @@ elif menu == "LoanScope AX":
                     with sat_option1:
                         satellite_radius = st.selectbox(
                             "조회 반경",
-                            options=[500, 1000, 2000, 3000],
+                            options=[250, 500, 1000, 2000, 3000],
                             index=1,
-                            format_func=lambda value: f"약 {value:,}m",
+                            format_func=lambda value: (
+                                f"약 {value:,}m"
+                                + (" · 근접 보기" if value == 250 else "")
+                            ),
                             key="satellite_radius",
+                            help=(
+                                "반경을 줄이면 대상지가 크게 보입니다. "
+                                "다만 Sentinel-2 원본 공간해상도는 약 10m입니다."
+                            ),
                         )
                     with sat_option2:
                         manual_coordinates = st.checkbox(
@@ -881,6 +910,10 @@ elif menu == "LoanScope AX":
                             f'{satellite_result["longitude"]:.6f} · '
                             f'조회 반경: 약 {satellite_result["radius_meters"]:,}m · '
                             f'영상 ID: {scene["item_id"]}'
+                        )
+                        st.caption(
+                            "표시 개선: 720px 렌더링 · 명암/색상/선명도 보정 · "
+                            "원본 공간해상도 약 10m"
                         )
                         st.caption(
                             "영상: Copernicus Sentinel-2 L2A via Microsoft Planetary Computer · "
