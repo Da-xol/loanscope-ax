@@ -2,6 +2,7 @@ import base64
 import json
 import math
 import os
+import time
 from datetime import date, datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
@@ -472,12 +473,18 @@ def render_vworld_satellite(
     if not api_key:
         raise ValueError("VWorld API 인증키가 설정되지 않았습니다.")
 
+    # 전체 조회가 60초를 넘지 않도록 절대 마감시간을 사용합니다.
+    total_timeout_seconds = 60.0
+    started_at = time.monotonic()
+    deadline = started_at + total_timeout_seconds
+
+    # 과도한 재시도 누적을 막기 위해 요청별 재시도는 1회로 제한합니다.
     retry_policy = Retry(
-        total=3,
-        connect=3,
-        read=3,
-        status=3,
-        backoff_factor=0.7,
+        total=1,
+        connect=1,
+        read=1,
+        status=1,
+        backoff_factor=0.25,
         status_forcelist=(429, 500, 502, 503, 504),
         allowed_methods=frozenset(["GET"]),
         raise_on_status=False,
@@ -497,6 +504,11 @@ def render_vworld_satellite(
     last_message = None
 
     for effective_zoom in range(int(zoom), 16, -1):
+        if time.monotonic() >= deadline:
+            raise TimeoutError(
+                "VWorld 영상지도 조회가 60초를 초과하여 연결을 종료했습니다."
+            )
+
         attempted_zooms.append(effective_zoom)
 
         fractional_x, fractional_y = _latlon_to_tile(
@@ -538,7 +550,19 @@ def render_vworld_satellite(
                 )
 
                 try:
-                    response = session.get(url, timeout=(8, 20))
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise TimeoutError(
+                            "VWorld 영상지도 조회가 60초를 초과하여 연결을 종료했습니다."
+                        )
+
+                    # 남은 전체 시간보다 개별 요청이 더 오래 대기하지 않도록 제한합니다.
+                    connect_timeout = max(1.0, min(5.0, remaining))
+                    read_timeout = max(1.0, min(10.0, remaining))
+                    response = session.get(
+                        url,
+                        timeout=(connect_timeout, read_timeout),
+                    )
                     last_status = response.status_code
 
                     if response.status_code in (401, 403):
@@ -577,8 +601,13 @@ def render_vworld_satellite(
                     )
                     success_tiles += 1
 
+                except TimeoutError:
+                    raise
                 except RuntimeError:
                     raise
+                except requests.Timeout:
+                    failed_tiles += 1
+                    last_message = "VWorld 타일 응답시간이 초과되었습니다."
                 except requests.RequestException:
                     failed_tiles += 1
                     last_message = "VWorld 서버 연결이 일시적으로 불안정합니다."
@@ -1298,7 +1327,7 @@ elif menu == "LoanScope AX":
                                 ):
                                     try:
                                         with st.spinner(
-                                            "VWorld 고해상도 영상지도를 불러오고 있습니다."
+                                            "VWorld 고해상도 영상지도를 불러오고 있습니다. 최대 60초까지 시도합니다."
                                         ):
                                             vworld_render = render_vworld_satellite(
                                                 satellite_result["latitude"],
@@ -1318,6 +1347,12 @@ elif menu == "LoanScope AX":
                                                 "tile_radius": vworld_area,
                                                 "source_item_id": scene["item_id"],
                                             }
+                                    except TimeoutError:
+                                        st.session_state.pop("vworld_result", None)
+                                        st.error(
+                                            "VWorld 응답이 60초를 초과하여 연결을 종료했습니다. "
+                                            "잠시 후 다시 시도하거나 표시 범위를 3 × 3 타일로 설정해주세요."
+                                        )
                                     except Exception as exc:
                                         st.session_state.pop("vworld_result", None)
                                         st.error(
@@ -1368,7 +1403,7 @@ elif menu == "LoanScope AX":
                     with col:
                         st.caption(label)
                         st.image(str(ASSETS / name), use_container_width=True)
-                uploaded = st.file_uploader("차주 제출 현장사진 교체", type=["jpg", "jpeg", "png"])
+                uploaded = st.file_uploader("차주 제출 현장사진 교체 (데모버전에서는 작동 불가)", type=["jpg", "jpeg", "png"])
                 if uploaded:
                     st.json(extract_exif(uploaded))
     

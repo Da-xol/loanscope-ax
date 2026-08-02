@@ -2712,3 +2712,51 @@ img {
     max-height: 320px !important;
   }
 }
+
+
+/* =========================================================
+   v6.4.3 위성영상 결과 메타정보 축소
+   요청 기준일 / 실제 촬영일 / 날짜 차이 / 장면 구름량 이하 영역
+   ========================================================= */
+.st-key-satellite_lookup_panel [data-testid="stMetric"] {
+  min-height: 70px !important;
+  padding: 8px 9px !important;
+  border-radius: 10px !important;
+}
+
+.st-key-satellite_lookup_panel [data-testid="stMetricLabel"],
+.st-key-satellite_lookup_panel [data-testid="stMetricLabel"] p {
+  font-size: 10px !important;
+  line-height: 1.2 !important;
+  font-weight: 650 !important;
+}
+
+.st-key-satellite_lookup_panel [data-testid="stMetricValue"],
+.st-key-satellite_lookup_panel [data-testid="stMetricValue"] div {
+  font-size: 16px !important;
+  line-height: 1.25 !important;
+  font-weight: 750 !important;
+}
+
+.st-key-satellite_lookup_panel [data-testid="stCaptionContainer"],
+.st-key-satellite_lookup_panel [data-testid="stCaptionContainer"] p {
+  font-size: 10px !important;
+  line-height: 1.4 !important;
+}
+
+.st-key-satellite_lookup_panel [data-testid="stAlert"] p {
+  font-size: 11px !important;
+  line-height: 1.45 !important;
+}
+
+@media (max-width: 760px) {
+  .st-key-satellite_lookup_panel [data-testid="stMetric"] {
+    min-height: 62px !important;
+    padding: 7px 8px !important;
+  }
+
+  .st-key-satellite_lookup_panel [data-testid="stMetricValue"],
+  .st-key-satellite_lookup_panel [data-testid="stMetricValue"] div {
+    font-size: 14px !important;
+  }
+}
