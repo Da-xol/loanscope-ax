@@ -127,91 +127,91 @@ elif menu == "LoanScope AX":
         case_name = st.selectbox("연결 심사사례", list(cases.keys()), key="loan_case")
         case = cases[case_name]
 
-        nav_col, main_col = st.columns([0.19, 0.81], gap="large")
-
-        with nav_col:
-            with st.container(key="loan_nav"):
-                st.markdown(
-                    f'''<nav class="loan-nav" aria-label="LoanScope AX 단계">
-                      <div class="loan-nav-case">
-                        <strong>{case["company_name"]}</strong>
-                        <span>{case["loan_purpose"]}</span>
-                        <div class="loan-nav-meta">
-                          <div><small>고객번호</small><b>{case.get("customer_no", "0000000")}</b></div>
-                          <div><small>관련담보번호</small><b>{case.get("collateral_no", "000000000001")}</b></div>
-                        </div>
-                      </div>
-                      <a id="loan-nav-1" class="loan-link active" href="#loan-step-1"><span class="n">1</span><span><b>기본정보</b><small>기업·대출·시설</small></span></a>
-                      <a id="loan-nav-2" class="loan-link" href="#loan-step-2"><span class="n">2</span><span><b>서류확인</b><small>필수 증빙 점검</small></span></a>
-                      <a id="loan-nav-3" class="loan-link" href="#loan-step-3"><span class="n">3</span><span><b>이미지 비교</b><small>공간영상·현장사진</small></span></a>
-                      <a id="loan-nav-4" class="loan-link" href="#loan-step-4"><span class="n">4</span><span><b>위험신호</b><small>메타데이터·일치성</small></span></a>
-                      <a id="loan-nav-5" class="loan-link" href="#loan-step-5"><span class="n">5</span><span><b>심사결과</b><small>등급·방문 권고</small></span></a>
-                    </nav>''',
-                    unsafe_allow_html=True,
-                )
-
-        with main_col:
-            st.markdown('<div id="loan-step-1" class="loan-section-anchor"></div><div class="loan-section-head"><div class="eyebrow">Step 01</div><h3>대출·시설 기본정보</h3><p>연결된 신청심사 건의 기업, 대출 및 공사 정보를 확인합니다.</p></div>', unsafe_allow_html=True)
-            l, r = st.columns(2)
-            with l:
-                company_name = st.text_input("기업명", case["company_name"])
-                st.text_input("업종", case["industry"])
-                st.number_input("신청금액(원)", min_value=0, value=int(case["loan_amount"]), step=10_000_000)
-                loan_purpose = st.text_input("자금용도", case["loan_purpose"])
-            with r:
-                st.text_input("사업장 주소", case["address"])
-                st.date_input("공사 시작일", value=date.fromisoformat(case["start_date"]))
-                st.date_input("공사 예정 완료일", value=date.fromisoformat(case["end_date"]))
-                st.slider("차주 신고 공정률", 0, 100, int(case["declared_progress"]))
-
-            st.markdown('<div id="loan-step-2" class="loan-section-anchor"></div><div class="loan-section-head"><div class="eyebrow">Step 02</div><h3>제출서류 확인</h3><p>시설자금의 목적과 공정단계에 필요한 핵심 증빙을 점검합니다.</p></div>', unsafe_allow_html=True)
-            cols = st.columns(2)
-            documents = {}
-            for idx, (doc, submitted) in enumerate(case["documents"].items()):
-                with cols[idx % 2]:
-                    documents[doc] = st.checkbox(doc, value=submitted, key=f"{case_name}_{doc}")
-
-            st.markdown('<div id="loan-step-3" class="loan-section-anchor"></div><div class="loan-section-head"><div class="eyebrow">Step 03</div><h3>공간영상·현장사진 비교</h3><p>신청 전후 공간영상과 차주가 제출한 현장사진을 비교합니다.</p></div>', unsafe_allow_html=True)
-            cols = st.columns(3)
-            for col, label, name in zip(cols, ["신청 전 공간영상", "최근 공간영상", "차주 제출 현장사진"], case["images"]):
-                with col:
-                    st.caption(label)
-                    st.image(str(ASSETS / name), use_container_width=True)
-            uploaded = st.file_uploader("차주 제출 현장사진 교체", type=["jpg", "jpeg", "png"])
-            if uploaded:
-                st.json(extract_exif(uploaded))
-
-            st.markdown('<div id="loan-step-4" class="loan-section-anchor"></div><div class="loan-section-head"><div class="eyebrow">Step 04</div><h3>자동 분석·위험신호 확인</h3><p>영상 변화, 메타데이터, 공간구조와 중복 이미지 신호를 확인합니다.</p></div>', unsafe_allow_html=True)
-            checks = dict(case["checks"])
-            l, r = st.columns(2)
-            with l:
-                checks["visible_change"] = st.toggle("신규 시설 변화 확인", value=checks["visible_change"])
-                checks["progress_mismatch"] = st.toggle("신고 공정률과 영상 변화 불일치", value=checks["progress_mismatch"])
-                checks["spatial_match"] = st.toggle("제출사진과 대상지 구조 일치", value=checks["spatial_match"])
-                checks["low_quality"] = st.toggle("영상 품질 부족", value=checks["low_quality"])
-            with r:
-                checks["gps_exists"] = st.toggle("GPS 정보 확인", value=checks["gps_exists"])
-                checks["exif_exists"] = st.toggle("촬영일시 정보 확인", value=checks["exif_exists"])
-                checks["editing_suspected"] = st.toggle("편집·생성 의심 신호", value=checks["editing_suspected"])
-                checks["duplicate_suspected"] = st.toggle("유사 이미지 중복 의심", value=checks["duplicate_suspected"])
-
-            if st.button("현장확인 분석 실행", use_container_width=True):
-                st.session_state["result"] = calculate_score(checks, documents)
-
-            st.markdown('<div id="loan-step-5" class="loan-section-anchor"></div><div class="loan-section-head"><div class="eyebrow">Step 05</div><h3>심사결과</h3><p>확인 신뢰도와 위험신호를 종합하여 후속 조치를 제시합니다.</p></div>', unsafe_allow_html=True)
-            if "result" in st.session_state:
-                score, grade, visit, recommendation, deductions = st.session_state["result"]
-                st.markdown(f'<div class="loan-result-card"><div class="metrics"><div class="metric"><small>확인 신뢰도</small><b>{score}점</b></div><div class="metric"><small>확인등급</small><b>{grade}</b></div><div class="metric"><small>현장방문 필요도</small><b>{visit}</b></div><div class="metric"><small>위험신호</small><b>{len(deductions)}건</b></div></div></div>', unsafe_allow_html=True)
-                st.markdown("#### 상세 위험신호")
-                if deductions:
-                    for reason, points in deductions:
-                        st.write(f"- {reason} (-{points}점)")
+        with st.container(key="loan_workspace"):
+            nav_col, main_col = st.columns([0.19, 0.81], gap="large")
+    
+            with nav_col:
+                with st.container(key="loan_nav"):
+                    st.markdown(
+                        f'''<nav class="loan-nav" aria-label="LoanScope AX 단계">
+                          <div class="loan-nav-case">
+                            <strong>{case["company_name"]}</strong>
+                            <span>{case["loan_purpose"]}</span>
+                            <div class="loan-nav-meta">
+                              <div><small>고객번호</small><b>{case.get("customer_no", "0000000")}</b></div>
+                              <div><small>관련담보번호</small><b>{case.get("collateral_no", "000000000001")}</b></div>
+                            </div>
+                          </div>
+                          <a id="loan-nav-1" class="loan-link active" href="#loan-step-1"><span class="n">1</span><span><b>기본정보</b><small>기업·대출·시설</small></span></a>
+                          <a id="loan-nav-2" class="loan-link" href="#loan-step-2"><span class="n">2</span><span><b>서류확인</b><small>필수 증빙 점검</small></span></a>
+                          <a id="loan-nav-3" class="loan-link" href="#loan-step-3"><span class="n">3</span><span><b>이미지 비교</b><small>공간영상·현장사진</small></span></a>
+                          <a id="loan-nav-4" class="loan-link" href="#loan-step-4"><span class="n">4</span><span><b>위험신호</b><small>메타데이터·일치성</small></span></a>
+                          <a id="loan-nav-5" class="loan-link" href="#loan-step-5"><span class="n">5</span><span><b>심사결과</b><small>등급·방문 권고</small></span></a>
+                        </nav>''',
+                        unsafe_allow_html=True,
+                    )
+    
+            with main_col:
+                st.markdown('<div id="loan-step-1" class="loan-section-anchor"></div><div class="loan-section-head"><div class="eyebrow">Step 01</div><h3>대출·시설 기본정보</h3><p>연결된 신청심사 건의 기업, 대출 및 공사 정보를 확인합니다.</p></div>', unsafe_allow_html=True)
+                l, r = st.columns(2)
+                with l:
+                    company_name = st.text_input("기업명", case["company_name"])
+                    st.text_input("업종", case["industry"])
+                    st.number_input("신청금액(원)", min_value=0, value=int(case["loan_amount"]), step=10_000_000)
+                    loan_purpose = st.text_input("자금용도", case["loan_purpose"])
+                with r:
+                    st.text_input("사업장 주소", case["address"])
+                    st.date_input("공사 시작일", value=date.fromisoformat(case["start_date"]))
+                    st.date_input("공사 예정 완료일", value=date.fromisoformat(case["end_date"]))
+                    st.slider("차주 신고 공정률", 0, 100, int(case["declared_progress"]))
+    
+                st.markdown('<div id="loan-step-2" class="loan-section-anchor"></div><div class="loan-section-head"><div class="eyebrow">Step 02</div><h3>제출서류 확인</h3><p>시설자금의 목적과 공정단계에 필요한 핵심 증빙을 점검합니다.</p></div>', unsafe_allow_html=True)
+                cols = st.columns(2)
+                documents = {}
+                for idx, (doc, submitted) in enumerate(case["documents"].items()):
+                    with cols[idx % 2]:
+                        documents[doc] = st.checkbox(doc, value=submitted, key=f"{case_name}_{doc}")
+    
+                st.markdown('<div id="loan-step-3" class="loan-section-anchor"></div><div class="loan-section-head"><div class="eyebrow">Step 03</div><h3>공간영상·현장사진 비교</h3><p>신청 전후 공간영상과 차주가 제출한 현장사진을 비교합니다.</p></div>', unsafe_allow_html=True)
+                cols = st.columns(3)
+                for col, label, name in zip(cols, ["신청 전 공간영상", "최근 공간영상", "차주 제출 현장사진"], case["images"]):
+                    with col:
+                        st.caption(label)
+                        st.image(str(ASSETS / name), use_container_width=True)
+                uploaded = st.file_uploader("차주 제출 현장사진 교체", type=["jpg", "jpeg", "png"])
+                if uploaded:
+                    st.json(extract_exif(uploaded))
+    
+                st.markdown('<div id="loan-step-4" class="loan-section-anchor"></div><div class="loan-section-head"><div class="eyebrow">Step 04</div><h3>자동 분석·위험신호 확인</h3><p>영상 변화, 메타데이터, 공간구조와 중복 이미지 신호를 확인합니다.</p></div>', unsafe_allow_html=True)
+                checks = dict(case["checks"])
+                l, r = st.columns(2)
+                with l:
+                    checks["visible_change"] = st.toggle("신규 시설 변화 확인", value=checks["visible_change"])
+                    checks["progress_mismatch"] = st.toggle("신고 공정률과 영상 변화 불일치", value=checks["progress_mismatch"])
+                    checks["spatial_match"] = st.toggle("제출사진과 대상지 구조 일치", value=checks["spatial_match"])
+                    checks["low_quality"] = st.toggle("영상 품질 부족", value=checks["low_quality"])
+                with r:
+                    checks["gps_exists"] = st.toggle("GPS 정보 확인", value=checks["gps_exists"])
+                    checks["exif_exists"] = st.toggle("촬영일시 정보 확인", value=checks["exif_exists"])
+                    checks["editing_suspected"] = st.toggle("편집·생성 의심 신호", value=checks["editing_suspected"])
+                    checks["duplicate_suspected"] = st.toggle("유사 이미지 중복 의심", value=checks["duplicate_suspected"])
+    
+                if st.button("현장확인 분석 실행", use_container_width=True):
+                    st.session_state["result"] = calculate_score(checks, documents)
+    
+                st.markdown('<div id="loan-step-5" class="loan-section-anchor"></div><div class="loan-section-head"><div class="eyebrow">Step 05</div><h3>심사결과</h3><p>확인 신뢰도와 위험신호를 종합하여 후속 조치를 제시합니다.</p></div>', unsafe_allow_html=True)
+                if "result" in st.session_state:
+                    score, grade, visit, recommendation, deductions = st.session_state["result"]
+                    st.markdown(f'<div class="loan-result-card"><div class="metrics"><div class="metric"><small>확인 신뢰도</small><b>{score}점</b></div><div class="metric"><small>확인등급</small><b>{grade}</b></div><div class="metric"><small>현장방문 필요도</small><b>{visit}</b></div><div class="metric"><small>위험신호</small><b>{len(deductions)}건</b></div></div></div>', unsafe_allow_html=True)
+                    st.markdown("#### 상세 위험신호")
+                    if deductions:
+                        for reason, points in deductions:
+                            st.write(f"- {reason} (-{points}점)")
+                    else:
+                        st.success("특이 위험신호가 확인되지 않았습니다.")
+                    st.text_area("심사보조 의견", f"{company_name}의 {loan_purpose} 관련 자료를 검토한 결과, 확인 신뢰도는 {score}점({grade}등급)이며 권고 조치는 {recommendation}입니다.", height=130)
                 else:
-                    st.success("특이 위험신호가 확인되지 않았습니다.")
-                st.text_area("심사보조 의견", f"{company_name}의 {loan_purpose} 관련 자료를 검토한 결과, 확인 신뢰도는 {score}점({grade}등급)이며 권고 조치는 {recommendation}입니다.", height=130)
-            else:
-                st.info("상단 입력값을 확인한 뒤 ‘현장확인 분석 실행’을 눌러주세요.")
-
+                    st.info("상단 입력값을 확인한 뒤 ‘현장확인 분석 실행’을 눌러주세요.")
     components.html('''<script>(function(){const doc=window.parent.document;const ids=['loan-step-1','loan-step-2','loan-step-3','loan-step-4','loan-step-5'];function active(id){ids.forEach((sid,i)=>{const link=doc.getElementById('loan-nav-'+(i+1));if(link)link.classList.toggle('active',sid===id);});}function bind(){const sections=ids.map(id=>doc.getElementById(id)).filter(Boolean);if(!sections.length){setTimeout(bind,300);return;}ids.forEach((id,i)=>{const link=doc.getElementById('loan-nav-'+(i+1));if(link&&!link.dataset.bound){link.dataset.bound='1';link.addEventListener('click',e=>{e.preventDefault();const target=doc.getElementById(id);if(target){target.scrollIntoView({behavior:'smooth',block:'start'});active(id);}});}});const observer=new IntersectionObserver(entries=>{const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>a.boundingClientRect.top-b.boundingClientRect.top);if(visible.length)active(visible[0].target.id);},{root:null,rootMargin:'-92px 0px -58% 0px',threshold:[0,.1,.25]});sections.forEach(s=>observer.observe(s));}bind();})();</script>''', height=0, width=0)
 
 else:

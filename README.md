@@ -1,5 +1,8 @@
-# LoanScope AX v5.3
+# LoanScope AX v5.4
 
-- LoanScope AX 상단의 심사 대상·연결품의번호·연결신청번호 카드 제거
-- 좌측 내비게이션에 고객번호(7자리), 관련담보번호 추가
-- 데스크톱/태블릿에서 좌측 내비게이션 sticky 동작 보강
+좌측 단계 내비게이터의 sticky containing block 높이를 수정한 버전입니다.
+
+- LoanScope 좌우 컬럼을 고유 컨테이너 `loan_workspace`로 분리
+- 좌측 컬럼과 내부 VerticalBlock을 우측 본문 높이까지 stretch
+- overflow 차단 해제
+- 데스크톱/태블릿 sticky, 모바일 일반 배치

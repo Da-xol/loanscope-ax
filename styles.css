@@ -128,3 +128,76 @@ div[role="radiogroup"] label:has(input:checked) p{color:#078d78!important}
   .loan-nav-case { display: block !important; }
   .loan-nav-meta { grid-template-columns: 1fr 1fr; }
 }
+
+
+/* v5.4 definitive sticky navigation fix
+   Sticky is constrained by the height of every ancestor.
+   Stretch the top-level LoanScope row and its left column wrappers
+   to the full height of the right-side review content. */
+.st-key-loan_workspace,
+.st-key-loan_workspace > div,
+.st-key-loan_workspace [data-testid="stHorizontalBlock"],
+.st-key-loan_workspace [data-testid="stColumn"],
+.st-key-loan_workspace [data-testid="stVerticalBlock"] {
+  overflow: visible !important;
+}
+
+.st-key-loan_workspace > div > [data-testid="stHorizontalBlock"],
+.st-key-loan_workspace [data-testid="stHorizontalBlock"]:first-child {
+  align-items: stretch !important;
+}
+
+.st-key-loan_workspace [data-testid="stColumn"]:first-child {
+  align-self: stretch !important;
+  height: auto !important;
+  min-height: 100% !important;
+  overflow: visible !important;
+}
+
+.st-key-loan_workspace [data-testid="stColumn"]:first-child > div,
+.st-key-loan_workspace [data-testid="stColumn"]:first-child [data-testid="stVerticalBlock"] {
+  height: 100% !important;
+  min-height: 100% !important;
+  overflow: visible !important;
+}
+
+.st-key-loan_workspace .st-key-loan_nav {
+  position: sticky !important;
+  position: -webkit-sticky !important;
+  top: 92px !important;
+  align-self: flex-start !important;
+  height: fit-content !important;
+  z-index: 40 !important;
+}
+
+.st-key-loan_workspace .loan-nav {
+  position: relative !important;
+  top: auto !important;
+  width: 100% !important;
+  max-height: calc(100vh - 112px);
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 900px) {
+  .st-key-loan_workspace .st-key-loan_nav {
+    top: 84px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .st-key-loan_workspace [data-testid="stColumn"]:first-child,
+  .st-key-loan_workspace [data-testid="stColumn"]:first-child > div,
+  .st-key-loan_workspace [data-testid="stColumn"]:first-child [data-testid="stVerticalBlock"] {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+  .st-key-loan_workspace .st-key-loan_nav {
+    position: relative !important;
+    top: auto !important;
+  }
+  .st-key-loan_workspace .loan-nav {
+    max-height: none;
+    overflow: visible !important;
+  }
+}
