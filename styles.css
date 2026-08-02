@@ -968,3 +968,14 @@ div[role="radiogroup"] label:has(input:checked) p{color:#078d78!important}
     display: none;
   }
 }
+
+
+/* v5.7 defensive rendering fix */
+.global-header pre,
+.global-header code {
+  display: none !important;
+}
+
+[data-testid="stMarkdownContainer"] > pre:first-child {
+  display: none !important;
+}

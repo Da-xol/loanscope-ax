@@ -1,5 +1,6 @@
 import base64
 import json
+import textwrap
 from datetime import date
 from pathlib import Path
 
@@ -88,33 +89,35 @@ def nav_class(key: str) -> str:
     return "app-nav-link active" if menu_key == key else "app-nav-link"
 
 st.markdown(
-    f"""
-    <header class="global-header">
-      <div class="global-header-inner">
-        <a class="product-brand" href="?menu=feature" aria-label="LoanScope AX 홈">
-          <img src="{LOANSCOPE_LOGO}" alt="LoanScope AX">
-        </a>
+    textwrap.dedent(
+        f"""
+<header class="global-header">
+  <div class="global-header-inner">
+    <a class="product-brand" href="?menu=feature" aria-label="LoanScope AX 홈">
+      <img src="{LOANSCOPE_LOGO}" alt="LoanScope AX">
+    </a>
 
-        <nav class="global-nav" aria-label="대분류 메뉴">
-          <a class="{nav_class('feature')}" href="?menu=feature">기능소개</a>
-          <a class="{nav_class('review')}" href="?menu=review">LoanScope AX</a>
-          <a class="{nav_class('qna')}" href="?menu=qna">QnA</a>
-        </nav>
+    <nav class="global-nav" aria-label="대분류 메뉴">
+      <a class="{nav_class('feature')}" href="?menu=feature">기능소개</a>
+      <a class="{nav_class('review')}" href="?menu=review">LoanScope AX</a>
+      <a class="{nav_class('qna')}" href="?menu=qna">QnA</a>
+    </nav>
 
-        <div class="global-user">
-          <button class="header-icon" type="button" aria-label="알림">
-            <span class="bell-shape"></span>
-          </button>
-          <span class="header-divider"></span>
-          <div class="user-profile">
-            <span class="avatar-frame"><img src="{CHAR_BLUE}" alt="사용자 캐릭터"></span>
-            <span class="user-name">심사역 김IM</span>
-            <span class="user-chevron">⌄</span>
-          </div>
-        </div>
+    <div class="global-user">
+      <button class="header-icon" type="button" aria-label="알림">
+        <span class="bell-shape"></span>
+      </button>
+      <span class="header-divider"></span>
+      <div class="user-profile">
+        <span class="avatar-frame"><img src="{CHAR_BLUE}" alt="사용자 캐릭터"></span>
+        <span class="user-name">심사역 김IM</span>
+        <span class="user-chevron">⌄</span>
       </div>
-    </header>
-    """,
+    </div>
+  </div>
+</header>
+"""
+    ),
     unsafe_allow_html=True,
 )
 
