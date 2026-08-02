@@ -2329,3 +2329,102 @@ img {
     border-radius: 12px !important;
   }
 }
+
+
+/* =========================================================
+   v6.3 무료 실제 위성영상 조회 패널
+   ========================================================= */
+.st-key-satellite_lookup_panel {
+  margin: 12px 0 22px !important;
+  padding: 18px !important;
+  border: 1px solid #d7e9e4 !important;
+  border-radius: 16px !important;
+  background:
+    radial-gradient(circle at 96% 0%, rgba(25, 190, 154, .09), transparent 32%),
+    #ffffff !important;
+  box-shadow: 0 8px 24px rgba(17, 79, 67, .07) !important;
+}
+
+.satellite-panel-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.satellite-panel-title span {
+  color: #123f37 !important;
+  font-size: 18px;
+  font-weight: 850;
+  letter-spacing: -.4px;
+}
+
+.satellite-panel-title small {
+  color: #718780 !important;
+  font-size: 11px;
+  text-align: right;
+}
+
+.st-key-run_satellite_lookup {
+  width: 100% !important;
+  margin-top: 8px !important;
+}
+
+.st-key-run_satellite_lookup .stButton,
+.st-key-run_satellite_lookup .stButton > button {
+  width: 100% !important;
+}
+
+.st-key-run_satellite_lookup .stButton > button {
+  min-height: 50px !important;
+  border: 1px solid #b9ddd4 !important;
+  border-radius: 12px !important;
+  background: #e8f8f4 !important;
+  color: #087962 !important;
+  -webkit-text-fill-color: #087962 !important;
+  font-weight: 800 !important;
+  box-shadow: none !important;
+}
+
+.st-key-run_satellite_lookup .stButton > button p,
+.st-key-run_satellite_lookup .stButton > button span,
+.st-key-run_satellite_lookup .stButton > button div {
+  color: #087962 !important;
+  -webkit-text-fill-color: #087962 !important;
+  font-weight: 800 !important;
+}
+
+.st-key-run_satellite_lookup .stButton > button:hover {
+  border-color: #7ccab8 !important;
+  background: #daf3ed !important;
+  transform: translateY(-1px) !important;
+}
+
+@media (max-width: 760px) {
+  .st-key-satellite_lookup_panel {
+    padding: 14px 12px !important;
+    border-radius: 14px !important;
+  }
+
+  .satellite-panel-title {
+    display: block;
+  }
+
+  .satellite-panel-title small {
+    display: block;
+    margin-top: 4px;
+    text-align: left;
+  }
+
+  .st-key-satellite_lookup_panel [data-testid="stHorizontalBlock"] {
+    flex-wrap: wrap !important;
+  }
+
+  .st-key-satellite_lookup_panel [data-testid="stHorizontalBlock"]
+  > [data-testid="stColumn"] {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}

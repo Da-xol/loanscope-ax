@@ -1,11 +1,20 @@
 import base64
 import json
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
+from io import BytesIO
 from pathlib import Path
 
 import streamlit as st
 import streamlit.components.v1 as components
+import numpy as np
+import planetary_computer
+import rasterio
+import requests
 from PIL import ExifTags, Image
+from pystac_client import Client
+from rasterio.enums import Resampling
+from rasterio.windows import Window
+from rasterio.warp import transform as transform_coordinates
 
 BASE = Path(__file__).parent
 ASSETS = BASE / "assets"
@@ -36,6 +45,298 @@ def extract_exif(uploaded):
     except Exception:
         pass
     return result
+
+
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+PLANETARY_COMPUTER_STAC_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
+SATELLITE_COLLECTION = "sentinel-2-l2a"
+SATELLITE_USER_AGENT = "LoanScopeAX-PoC/1.0 (single-address satellite lookup)"
+
+
+@st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
+def geocode_address_free(address: str) -> dict:
+    """Geocode one address through the public Nominatim service."""
+    cleaned = address.strip()
+    if not cleaned:
+        raise ValueError("주소를 입력해주세요.")
+
+    response = requests.get(
+        NOMINATIM_URL,
+        params={
+            "q": cleaned,
+            "format": "jsonv2",
+            "limit": 1,
+            "countrycodes": "kr",
+            "addressdetails": 1,
+        },
+        headers={
+            "User-Agent": SATELLITE_USER_AGENT,
+            "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.6",
+        },
+        timeout=20,
+    )
+    response.raise_for_status()
+    rows = response.json()
+
+    if not rows:
+        raise LookupError(
+            "OpenStreetMap에서 주소 좌표를 찾지 못했습니다. "
+            "주소를 간소화하거나 위도·경도를 직접 입력해주세요."
+        )
+
+    row = rows[0]
+    return {
+        "latitude": float(row["lat"]),
+        "longitude": float(row["lon"]),
+        "display_name": row.get("display_name", cleaned),
+        "osm_type": row.get("type"),
+    }
+
+
+def _scene_datetime(item) -> datetime:
+    value = item.datetime
+    if value is None:
+        raw = item.properties.get("datetime")
+        if not raw:
+            raise ValueError("위성영상 촬영일시가 없습니다.")
+        value = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value
+
+
+@st.cache_data(ttl=60 * 60 * 6, show_spinner=False)
+def find_nearest_sentinel_scene(
+    latitude: float,
+    longitude: float,
+    requested_date_iso: str,
+    search_days: int,
+    max_cloud: int,
+) -> dict:
+    """Search the nearest Sentinel-2 L2A scene by date, then cloud cover."""
+    requested_date = date.fromisoformat(requested_date_iso)
+    start_date = requested_date - timedelta(days=search_days)
+    end_date = requested_date + timedelta(days=search_days)
+
+    catalog = Client.open(
+        PLANETARY_COMPUTER_STAC_URL,
+        modifier=planetary_computer.sign_inplace,
+    )
+
+    search = catalog.search(
+        collections=[SATELLITE_COLLECTION],
+        intersects={
+            "type": "Point",
+            "coordinates": [longitude, latitude],
+        },
+        datetime=f"{start_date.isoformat()}/{end_date.isoformat()}",
+        query={"eo:cloud_cover": {"lte": max_cloud}},
+        max_items=100,
+    )
+
+    items = list(search.items())
+    if not items:
+        raise LookupError(
+            f"기준일 전후 ±{search_days}일, 구름량 {max_cloud}% 이하 조건에 "
+            "해당하는 Sentinel-2 영상이 없습니다. 검색기간이나 구름량을 늘려주세요."
+        )
+
+    ranked = []
+    for item in items:
+        captured_at = _scene_datetime(item)
+        captured_date = captured_at.date()
+        date_gap = abs((captured_date - requested_date).days)
+        cloud = float(item.properties.get("eo:cloud_cover") or 100.0)
+
+        required_assets = ("B02", "B03", "B04")
+        if not all(key in item.assets for key in required_assets):
+            continue
+
+        ranked.append((date_gap, cloud, captured_at, item))
+
+    if not ranked:
+        raise LookupError("검색된 영상에 RGB 밴드 자산이 없습니다.")
+
+    ranked.sort(key=lambda row: (row[0], row[1]))
+    date_gap, cloud, captured_at, selected = ranked[0]
+
+    return {
+        "item_id": selected.id,
+        "captured_at": captured_at.isoformat(),
+        "captured_date": captured_at.date().isoformat(),
+        "date_gap": int(date_gap),
+        "cloud_cover": round(float(cloud), 2),
+        "platform": selected.properties.get("platform", "Sentinel-2"),
+        "constellation": selected.properties.get("constellation", "sentinel-2"),
+        "mgrs_tile": selected.properties.get("s2:mgrs_tile"),
+        "assets": {
+            "red": selected.assets["B04"].href,
+            "green": selected.assets["B03"].href,
+            "blue": selected.assets["B02"].href,
+        },
+    }
+
+
+def _read_band_window(
+    asset_url: str,
+    latitude: float,
+    longitude: float,
+    radius_meters: int,
+    output_size: int = 640,
+) -> np.ndarray:
+    """Read a square band window centered on the requested coordinate."""
+    with rasterio.Env(
+        GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR",
+        CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".tif,.TIF",
+        GDAL_HTTP_MULTIRANGE="YES",
+    ):
+        with rasterio.open(asset_url) as dataset:
+            xs, ys = transform_coordinates(
+                "EPSG:4326",
+                dataset.crs,
+                [longitude],
+                [latitude],
+            )
+            row, col = dataset.index(xs[0], ys[0])
+
+            pixel_width = max(abs(float(dataset.transform.a)), 1.0)
+            radius_pixels = max(24, int(radius_meters / pixel_width))
+            window = Window(
+                col_off=col - radius_pixels,
+                row_off=row - radius_pixels,
+                width=radius_pixels * 2,
+                height=radius_pixels * 2,
+            )
+
+            data = dataset.read(
+                1,
+                window=window,
+                out_shape=(output_size, output_size),
+                boundless=True,
+                fill_value=0,
+                resampling=Resampling.bilinear,
+            )
+    return data.astype(np.float32)
+
+
+def _stretch_rgb(red: np.ndarray, green: np.ndarray, blue: np.ndarray) -> Image.Image:
+    """Apply a percentile stretch suitable for Sentinel-2 true-color display."""
+    stack = np.stack([red, green, blue], axis=-1)
+    valid = np.all(stack > 0, axis=-1)
+
+    if not np.any(valid):
+        raise ValueError("대상 좌표 주변의 유효한 위성 픽셀을 읽지 못했습니다.")
+
+    output = np.zeros_like(stack, dtype=np.uint8)
+
+    for channel_index in range(3):
+        channel = stack[..., channel_index]
+        values = channel[valid]
+        low, high = np.percentile(values, [2, 98])
+
+        if high <= low:
+            high = low + 1.0
+
+        scaled = np.clip((channel - low) / (high - low), 0, 1)
+        # Slight gamma lift improves dark Sentinel-2 scenes.
+        scaled = np.power(scaled, 0.82)
+        output[..., channel_index] = (scaled * 255).astype(np.uint8)
+
+    output[~valid] = 235
+    return Image.fromarray(output, mode="RGB")
+
+
+@st.cache_data(ttl=60 * 60 * 6, show_spinner=False)
+def render_sentinel_rgb(
+    red_url: str,
+    green_url: str,
+    blue_url: str,
+    latitude: float,
+    longitude: float,
+    radius_meters: int,
+) -> bytes:
+    """Render signed Sentinel-2 RGB assets around one coordinate as PNG."""
+    red = _read_band_window(
+        red_url,
+        latitude,
+        longitude,
+        radius_meters,
+    )
+    green = _read_band_window(
+        green_url,
+        latitude,
+        longitude,
+        radius_meters,
+    )
+    blue = _read_band_window(
+        blue_url,
+        latitude,
+        longitude,
+        radius_meters,
+    )
+
+    image = _stretch_rgb(red, green, blue)
+    buffer = BytesIO()
+    image.save(buffer, format="PNG", optimize=True)
+    return buffer.getvalue()
+
+
+def lookup_satellite_image(
+    *,
+    address: str,
+    requested_date: date,
+    search_days: int,
+    max_cloud: int,
+    radius_meters: int,
+    use_manual_coordinates: bool,
+    manual_latitude: float,
+    manual_longitude: float,
+) -> dict:
+    """Run geocoding, STAC search and RGB rendering."""
+    if use_manual_coordinates:
+        latitude = float(manual_latitude)
+        longitude = float(manual_longitude)
+        location_label = f"직접 입력 좌표: {latitude:.6f}, {longitude:.6f}"
+        geocode_source = "직접 입력"
+    else:
+        location = geocode_address_free(address)
+        latitude = location["latitude"]
+        longitude = location["longitude"]
+        location_label = location["display_name"]
+        geocode_source = "OpenStreetMap Nominatim"
+
+    scene = find_nearest_sentinel_scene(
+        latitude,
+        longitude,
+        requested_date.isoformat(),
+        search_days,
+        max_cloud,
+    )
+
+    png_bytes = render_sentinel_rgb(
+        scene["assets"]["red"],
+        scene["assets"]["green"],
+        scene["assets"]["blue"],
+        latitude,
+        longitude,
+        radius_meters,
+    )
+
+    return {
+        "address_input": address,
+        "location_label": location_label,
+        "geocode_source": geocode_source,
+        "latitude": latitude,
+        "longitude": longitude,
+        "requested_date": requested_date.isoformat(),
+        "search_days": search_days,
+        "max_cloud": max_cloud,
+        "radius_meters": radius_meters,
+        "scene": scene,
+        "png_bytes": png_bytes,
+    }
+
 
 def calculate_score(checks, documents):
     deductions = []
@@ -302,8 +603,11 @@ elif menu == "LoanScope AX":
                     st.number_input("신청금액(원)", min_value=0, value=int(case["loan_amount"]), step=10_000_000)
                     loan_purpose = st.text_input("자금용도", case["loan_purpose"])
                 with r:
-                    st.text_input("사업장 주소", case["address"])
-                    st.date_input("공사 시작일", value=date.fromisoformat(case["start_date"]))
+                    address = st.text_input("사업장 주소", case["address"])
+                    construction_start_date = st.date_input(
+                        "공사 시작일",
+                        value=date.fromisoformat(case["start_date"]),
+                    )
                     st.date_input("공사 예정 완료일", value=date.fromisoformat(case["end_date"]))
                     st.slider("차주 신고 공정률", 0, 100, int(case["declared_progress"]))
     
@@ -315,6 +619,166 @@ elif menu == "LoanScope AX":
                         documents[doc] = st.checkbox(doc, value=submitted, key=f"{case_name}_{doc}")
     
                 st.markdown('<div id="loan-step-3" class="loan-section-anchor"></div><div class="loan-section-head"><div class="eyebrow">Step 03</div><h3>공간영상·현장사진 비교</h3><p>신청 전후 공간영상과 차주가 제출한 현장사진을 비교합니다.</p></div>', unsafe_allow_html=True)
+
+                with st.container(key="satellite_lookup_panel"):
+                    st.markdown(
+                        """
+                        <div class="satellite-panel-title">
+                          <span>무료 실제 위성영상 조회</span>
+                          <small>OpenStreetMap + Microsoft Planetary Computer · Sentinel-2 L2A</small>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+                    satellite_address = st.text_input(
+                        "위성영상 조회 주소",
+                        value=address,
+                        key="satellite_address",
+                        help="한국 상세주소는 OpenStreetMap 데이터 상태에 따라 검색되지 않을 수 있습니다.",
+                    )
+
+                    sat_col1, sat_col2, sat_col3 = st.columns(3)
+                    with sat_col1:
+                        satellite_date = st.date_input(
+                            "기준 날짜",
+                            value=construction_start_date,
+                            key="satellite_date",
+                        )
+                    with sat_col2:
+                        satellite_search_days = st.selectbox(
+                            "검색 범위",
+                            options=[7, 14, 30, 60],
+                            index=1,
+                            format_func=lambda value: f"기준일 전후 ±{value}일",
+                            key="satellite_search_days",
+                        )
+                    with sat_col3:
+                        satellite_max_cloud = st.slider(
+                            "최대 장면 구름량",
+                            min_value=5,
+                            max_value=100,
+                            value=40,
+                            step=5,
+                            key="satellite_max_cloud",
+                        )
+
+                    sat_option1, sat_option2 = st.columns(2)
+                    with sat_option1:
+                        satellite_radius = st.selectbox(
+                            "조회 반경",
+                            options=[500, 1000, 2000, 3000],
+                            index=1,
+                            format_func=lambda value: f"약 {value:,}m",
+                            key="satellite_radius",
+                        )
+                    with sat_option2:
+                        manual_coordinates = st.checkbox(
+                            "위도·경도 직접 입력",
+                            value=False,
+                            key="satellite_manual_coordinates",
+                            help="주소 검색이 실패하는 경우 사용합니다.",
+                        )
+
+                    manual_latitude = 37.5665
+                    manual_longitude = 126.9780
+                    if manual_coordinates:
+                        coordinate_col1, coordinate_col2 = st.columns(2)
+                        with coordinate_col1:
+                            manual_latitude = st.number_input(
+                                "위도",
+                                min_value=-90.0,
+                                max_value=90.0,
+                                value=37.5665,
+                                format="%.6f",
+                                key="satellite_latitude",
+                            )
+                        with coordinate_col2:
+                            manual_longitude = st.number_input(
+                                "경도",
+                                min_value=-180.0,
+                                max_value=180.0,
+                                value=126.9780,
+                                format="%.6f",
+                                key="satellite_longitude",
+                            )
+
+                    if st.button(
+                        "주소·날짜로 위성영상 조회",
+                        key="run_satellite_lookup",
+                        use_container_width=True,
+                    ):
+                        try:
+                            with st.status(
+                                "무료 위성영상을 조회하고 있습니다.",
+                                expanded=True,
+                            ) as satellite_status:
+                                if manual_coordinates:
+                                    st.write("① 입력한 좌표를 사용합니다.")
+                                else:
+                                    st.write("① 주소를 위도·경도로 변환합니다.")
+                                st.write("② 기준일과 가까운 Sentinel-2 영상을 검색합니다.")
+                                st.write("③ 대상지 주변 RGB 영상을 생성합니다.")
+
+                                satellite_result = lookup_satellite_image(
+                                    address=satellite_address,
+                                    requested_date=satellite_date,
+                                    search_days=satellite_search_days,
+                                    max_cloud=satellite_max_cloud,
+                                    radius_meters=satellite_radius,
+                                    use_manual_coordinates=manual_coordinates,
+                                    manual_latitude=manual_latitude,
+                                    manual_longitude=manual_longitude,
+                                )
+                                st.session_state["satellite_result"] = satellite_result
+                                satellite_status.update(
+                                    label="위성영상 조회가 완료되었습니다.",
+                                    state="complete",
+                                )
+                        except Exception as exc:
+                            st.session_state.pop("satellite_result", None)
+                            st.error(f"위성영상 조회에 실패했습니다: {exc}")
+
+                    satellite_result = st.session_state.get("satellite_result")
+                    if satellite_result:
+                        scene = satellite_result["scene"]
+                        st.image(
+                            satellite_result["png_bytes"],
+                            caption=(
+                                f'실제 촬영일 {scene["captured_date"]} · '
+                                f'요청일 차이 {scene["date_gap"]}일 · '
+                                f'장면 구름량 {scene["cloud_cover"]}%'
+                            ),
+                            use_container_width=True,
+                        )
+
+                        meta1, meta2, meta3, meta4 = st.columns(4)
+                        with meta1:
+                            st.metric("요청 기준일", satellite_result["requested_date"])
+                        with meta2:
+                            st.metric("실제 촬영일", scene["captured_date"])
+                        with meta3:
+                            st.metric("날짜 차이", f'{scene["date_gap"]}일')
+                        with meta4:
+                            st.metric("장면 구름량", f'{scene["cloud_cover"]}%')
+
+                        st.caption(
+                            f'좌표: {satellite_result["latitude"]:.6f}, '
+                            f'{satellite_result["longitude"]:.6f} · '
+                            f'조회 반경: 약 {satellite_result["radius_meters"]:,}m · '
+                            f'영상 ID: {scene["item_id"]}'
+                        )
+                        st.caption(
+                            "영상: Copernicus Sentinel-2 L2A via Microsoft Planetary Computer · "
+                            f'좌표 변환: {satellite_result["geocode_source"]} · '
+                            "OpenStreetMap contributors"
+                        )
+                        st.warning(
+                            "Sentinel-2 RGB 대표 해상도는 약 10m입니다. "
+                            "대규모 부지·공장·창고·태양광·농지 변화 확인에는 활용할 수 있으나, "
+                            "소형 건물의 세부 공정률 판독에는 한계가 있습니다."
+                        )
+
                 cols = st.columns(3)
                 for col, label, name in zip(cols, ["신청 전 공간영상", "최근 공간영상", "차주 제출 현장사진"], case["images"]):
                     with col:

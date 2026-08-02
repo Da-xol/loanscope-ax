@@ -1,4 +1,7 @@
 streamlit>=1.36
 Pillow>=10.0
-openai>=1.109.0
-pydantic>=2.8
+requests>=2.32
+numpy>=1.26
+pystac-client>=0.8.5
+planetary-computer>=1.0.0
+rasterio>=1.4.0
