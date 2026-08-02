@@ -139,7 +139,7 @@ elif menu == "LoanScope AX":
                             <span>{case["loan_purpose"]}</span>
                             <div class="loan-nav-meta">
                               <div><small>고객번호</small><b>{case.get("customer_no", "0000000")}</b></div>
-                              <div><small>관련담보번호</small><b>{case.get("collateral_no", "000000000001")}</b></div>
+                              <div><small>관련담보번호</small><b>{case.get("collateral_no", "2-1")}</b></div>
                             </div>
                           </div>
                           <a id="loan-nav-1" class="loan-link active" href="#loan-step-1"><span class="n">1</span><span><b>기본정보</b><small>기업·대출·시설</small></span></a>
