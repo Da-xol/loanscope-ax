@@ -139,7 +139,7 @@ elif menu == "LoanScope AX":
                             <span>{case["loan_purpose"]}</span>
                             <div class="loan-nav-meta">
                               <div><small>고객번호</small><b>{case.get("customer_no", "0000000")}</b></div>
-                              <div><small>관련담보번호</small><b>{case.get("collateral_no", "2-1")}</b></div>
+                              <div><small>관련담보번호</small><b>{case.get("collateral_no", "000000000001")}</b></div>
                             </div>
                           </div>
                           <a id="loan-nav-1" class="loan-link active" href="#loan-step-1"><span class="n">1</span><span><b>기본정보</b><small>기업·대출·시설</small></span></a>
@@ -215,7 +215,102 @@ elif menu == "LoanScope AX":
     components.html('''<script>(function(){const doc=window.parent.document;const ids=['loan-step-1','loan-step-2','loan-step-3','loan-step-4','loan-step-5'];function active(id){ids.forEach((sid,i)=>{const link=doc.getElementById('loan-nav-'+(i+1));if(link)link.classList.toggle('active',sid===id);});}function bind(){const sections=ids.map(id=>doc.getElementById(id)).filter(Boolean);if(!sections.length){setTimeout(bind,300);return;}ids.forEach((id,i)=>{const link=doc.getElementById('loan-nav-'+(i+1));if(link&&!link.dataset.bound){link.dataset.bound='1';link.addEventListener('click',e=>{e.preventDefault();const target=doc.getElementById(id);if(target){target.scrollIntoView({behavior:'smooth',block:'start'});active(id);}});}});const observer=new IntersectionObserver(entries=>{const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>a.boundingClientRect.top-b.boundingClientRect.top);if(visible.length)active(visible[0].target.id);},{root:null,rootMargin:'-92px 0px -58% 0px',threshold:[0,.1,.25]});sections.forEach(s=>observer.observe(s));}bind();})();</script>''', height=0, width=0)
 
 else:
-    st.markdown('<div class="workspace"><h2>자주 묻는 질문</h2>',unsafe_allow_html=True)
-    for q,a in [("위성사진만으로 대출을 승인하거나 거절하나요?","아닙니다. 추가 확인이 필요한 위험신호를 제공하는 심사보조 도구입니다."),("탁상감정과 무엇이 다른가요?","탁상감정은 담보가치 검토, LoanScope AX는 사업장과 시설의 존재·변화 확인이 목적입니다."),("현장점검을 완전히 대체할 수 있나요?","전면 대체가 아니라 현장방문 대상을 선별하는 것이 1차 목적입니다."),("AI 생성 이미지는 어떻게 확인하나요?","EXIF·GPS·편집정보·중복 이미지·공간구조 일치 여부를 종합 검토합니다.")]:
-        with st.expander(q): st.write(a)
-    st.markdown('</div>',unsafe_allow_html=True)
+    qna_items = [
+        (
+            "서비스 역할",
+            "위성사진만으로 대출을 승인하거나 거절하나요?",
+            "아닙니다. LoanScope AX는 자동 승인·거절 시스템이 아닙니다. 공간정보와 제출자료에서 확인된 위험신호를 직원에게 제공하고, 추가 서류 요청이나 현장방문 필요성을 판단하도록 지원합니다.",
+        ),
+        (
+            "심사 업무",
+            "탁상감정과 무엇이 다른가요?",
+            "탁상감정은 담보 부동산의 예상가치를 검토하는 절차입니다. LoanScope AX는 사업장과 목적시설이 실제로 존재하는지, 신청 목적대로 변화하거나 공사가 진행되는지를 확인하는 사실검증 보조 도구입니다.",
+        ),
+        (
+            "현장 확인",
+            "현장점검을 완전히 대체할 수 있나요?",
+            "전면 대체하지 않습니다. 규정상 현장방문이 필요한 건은 기존 절차를 유지합니다. LoanScope AX는 모든 건을 동일하게 방문하기보다 위험도가 높은 건을 우선 선별하는 데 목적이 있습니다.",
+        ),
+        (
+            "이미지 검증",
+            "AI로 생성하거나 편집한 이미지는 어떻게 확인하나요?",
+            "EXIF 촬영정보, GPS, 편집 프로그램 기록, 유사 이미지 중복 여부, 공간영상과 주변 구조의 일치 여부를 함께 검토합니다. 하나의 탐지 결과만으로 조작을 확정하지 않습니다.",
+        ),
+        (
+            "적용 대상",
+            "어떤 대출에 가장 적합한가요?",
+            "공장 신축·증축, 창고, 농업시설, 태양광, 토지조성처럼 외부 공간영상에서 시설이나 부지의 변화가 관찰되는 시설자금에 적합합니다. 실내 영업이나 무형 서비스업은 적용 적합도가 낮습니다.",
+        ),
+        (
+            "데이터 품질",
+            "공간영상이 오래되거나 흐리면 어떻게 하나요?",
+            "촬영일 경과, 구름, 계절 차이, 해상도 부족 등으로 판독이 어려우면 신뢰도를 낮추고 최신 현장사진, 영상통화, 추가서류 또는 현장방문을 권고합니다.",
+        ),
+        (
+            "개인정보",
+            "개인정보는 어떻게 보호하나요?",
+            "시설·토지 변화와 대출 목적 확인에 필요한 정보만 최소한으로 처리합니다. 사람 얼굴과 차량번호 분석은 제외하고, 역할 기반 접근통제, 암호화, 보관기간 관리와 처리 이력 기록을 전제로 합니다.",
+        ),
+    ]
+
+    qna_cards = "".join(
+        f"""
+        <details class="qna-item">
+          <summary>
+            <span class="qna-category">{category}</span>
+            <span class="qna-question">{question}</span>
+            <span class="qna-plus" aria-hidden="true"></span>
+          </summary>
+          <div class="qna-answer">{answer}</div>
+        </details>
+        """
+        for category, question, answer in qna_items
+    )
+
+    st.markdown(
+        f"""
+        <section class="qna-hero">
+          <div class="qna-hero-copy">
+            <span class="qna-kicker">LoanScope AX Guide</span>
+            <h1>궁금한 점을<br>쉽고 명확하게 확인하세요.</h1>
+            <p>
+              서비스 역할부터 심사 적용 범위, 이미지 검증, 개인정보 보호까지<br>
+              실제 은행 업무에서 자주 묻는 내용을 정리했습니다.
+            </p>
+          </div>
+          <div class="qna-hero-visual">
+            <div class="qna-orbit qna-orbit-one"></div>
+            <div class="qna-orbit qna-orbit-two"></div>
+            <img src="{CHAR_SKY}" alt="iM 캐릭터">
+          </div>
+        </section>
+
+        <main class="qna-page">
+          <section class="qna-intro">
+            <div>
+              <span class="qna-section-label">Frequently Asked Questions</span>
+              <h2>자주 묻는 질문</h2>
+              <p>질문을 선택하면 상세 답변을 확인할 수 있습니다.</p>
+            </div>
+            <div class="qna-count">
+              <strong>{len(qna_items)}</strong>
+              <span>개의 안내</span>
+            </div>
+          </section>
+
+          <section class="qna-list">
+            {qna_cards}
+          </section>
+
+          <section class="qna-support">
+            <div class="qna-support-icon">?</div>
+            <div>
+              <strong>안내되지 않은 내용이 있나요?</strong>
+              <p>베타 서비스에서는 담당 심사역의 검토와 기존 여신규정을 우선 적용합니다.</p>
+            </div>
+            <span class="qna-support-chip">Human-in-the-loop</span>
+          </section>
+        </main>
+        """,
+        unsafe_allow_html=True,
+    )
