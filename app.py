@@ -117,6 +117,20 @@ st.markdown(
     font-size: 0 !important;
     line-height: 0 !important;
     cursor: pointer !important;
+    text-indent: -9999px !important;
+    overflow: hidden !important;
+}}
+
+/* Streamlit 버튼 내부에 생성되는 텍스트 래퍼까지 완전히 숨김 */
+.st-key-global_header .st-key-main_logo_home .stButton > button > div,
+.st-key-global_header .st-key-main_logo_home .stButton > button p,
+.st-key-global_header .st-key-main_logo_home .stButton > button span {{
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
 }}
 
 .st-key-global_header .st-key-main_logo_home .stButton > button:hover {{
@@ -324,7 +338,11 @@ elif menu == "LoanScope AX":
                     checks["editing_suspected"] = st.toggle("편집·생성 의심 신호", value=checks["editing_suspected"])
                     checks["duplicate_suspected"] = st.toggle("유사 이미지 중복 의심", value=checks["duplicate_suspected"])
     
-                if st.button("현장확인 분석 실행", use_container_width=True):
+                if st.button(
+                    "현장확인 분석 실행",
+                    key="run_site_analysis",
+                    use_container_width=True,
+                ):
                     st.session_state["result"] = calculate_score(checks, documents)
     
                 st.markdown('<div id="loan-step-5" class="loan-section-anchor"></div><div class="loan-section-head"><div class="eyebrow">Step 05</div><h3>심사결과</h3><p>확인 신뢰도와 위험신호를 종합하여 후속 조치를 제시합니다.</p></div>', unsafe_allow_html=True)

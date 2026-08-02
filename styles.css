@@ -2260,3 +2260,72 @@ img {
     min-width: 400px !important;
   }
 }
+
+
+/* =========================================================
+   v6.2.3 현장확인 분석 실행 버튼 강조
+   ========================================================= */
+.st-key-run_site_analysis {
+  width: 100% !important;
+  margin-top: 10px !important;
+  margin-bottom: 10px !important;
+}
+
+.st-key-run_site_analysis .stButton,
+.st-key-run_site_analysis .stButton > button {
+  width: 100% !important;
+}
+
+.st-key-run_site_analysis .stButton > button {
+  min-height: 54px !important;
+  border: 1px solid #10a989 !important;
+  border-radius: 13px !important;
+  background: linear-gradient(135deg, #16b996 0%, #079577 100%) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.2px !important;
+  box-shadow: 0 8px 20px rgba(7, 149, 119, 0.22) !important;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    filter 0.16s ease !important;
+}
+
+.st-key-run_site_analysis .stButton > button p,
+.st-key-run_site_analysis .stButton > button span,
+.st-key-run_site_analysis .stButton > button div {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+.st-key-run_site_analysis .stButton > button:hover {
+  border-color: #07876d !important;
+  background: linear-gradient(135deg, #13aa8a 0%, #067e66 100%) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 11px 24px rgba(7, 149, 119, 0.28) !important;
+  filter: saturate(1.05) !important;
+}
+
+.st-key-run_site_analysis .stButton > button:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 5px 14px rgba(7, 149, 119, 0.20) !important;
+}
+
+.st-key-run_site_analysis .stButton > button:focus,
+.st-key-run_site_analysis .stButton > button:focus-visible {
+  color: #ffffff !important;
+  outline: 3px solid rgba(22, 185, 150, 0.28) !important;
+  outline-offset: 2px !important;
+}
+
+@media (max-width: 760px) {
+  .st-key-run_site_analysis .stButton > button {
+    min-height: 52px !important;
+    font-size: 15px !important;
+    border-radius: 12px !important;
+  }
+}
