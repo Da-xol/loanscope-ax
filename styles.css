@@ -970,12 +970,30 @@ div[role="radiogroup"] label:has(input:checked) p{color:#078d78!important}
 }
 
 
-/* v5.7 defensive rendering fix */
-.global-header pre,
-.global-header code {
-  display: none !important;
+
+
+/* v5.8 header visibility guarantee */
+.global-header,
+.global-header-inner,
+.global-nav,
+.global-user,
+.product-brand {
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
-[data-testid="stMarkdownContainer"] > pre:first-child {
-  display: none !important;
+.global-header {
+  display: block !important;
+}
+
+.global-header-inner {
+  display: grid !important;
+}
+
+.global-nav {
+  display: flex !important;
+}
+
+.global-user {
+  display: flex !important;
 }

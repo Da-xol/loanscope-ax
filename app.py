@@ -1,6 +1,5 @@
 import base64
 import json
-import textwrap
 from datetime import date
 from pathlib import Path
 
@@ -88,9 +87,7 @@ menu = menu_map[menu_key]
 def nav_class(key: str) -> str:
     return "app-nav-link active" if menu_key == key else "app-nav-link"
 
-st.markdown(
-    textwrap.dedent(
-        f"""
+header_html = f"""
 <header class="global-header">
   <div class="global-header-inner">
     <a class="product-brand" href="?menu=feature" aria-label="LoanScope AX 홈">
@@ -117,9 +114,7 @@ st.markdown(
   </div>
 </header>
 """
-    ),
-    unsafe_allow_html=True,
-)
+st.html(header_html)
 
 
 if menu == "기능소개":

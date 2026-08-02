@@ -1,8 +1,9 @@
-# LoanScope AX v5.7
+# LoanScope AX v5.8
 
-상단 헤더 HTML이 코드 블록으로 노출되는 문제를 수정했습니다.
+상단 메뉴를 st.markdown이 아닌 st.html로 직접 렌더링하도록 수정했습니다.
 
-- 헤더 HTML에 textwrap.dedent 적용
-- leading indentation 제거
-- unsafe_allow_html 렌더링 유지
-- 방어용 pre/code 숨김 CSS 추가
+- Markdown 코드 블록 해석 제거
+- v5.7 방어용 숨김 CSS 제거
+- 글로벌 헤더·메뉴 표시 강제
+- 짙은 녹색 LoanScope AX 로고 유지
+- 캐릭터 사용자 프로필 유지
