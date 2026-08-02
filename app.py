@@ -63,6 +63,7 @@ def calculate_score(checks, documents):
         return score, "B", "중간", "추가 증빙 후 재검토", deductions
     return score, "C", "높음", "현장방문 권고", deductions
 
+CHAR_PRO = uri("im_character_pro.png")
 CHAR_BLUE = uri("im_character_blue.png")
 CHAR_SKY = uri("im_character_sky.png")
 LOANSCOPE_LOGO = uri("loanscope_ax_logo.svg")
@@ -117,7 +118,7 @@ with st.container(key="global_header"):
             <div class="smooth-user">
               <span class="smooth-bell" aria-hidden="true"></span>
               <span class="smooth-divider"></span>
-              <span class="smooth-avatar"><img src="{CHAR_BLUE}" alt="사용자 캐릭터"></span>
+              <span class="smooth-avatar"><img src="{CHAR_PRO}" alt="사용자 캐릭터"></span>
               <span class="smooth-user-name">심사역 김IM</span>
               <span class="smooth-chevron">⌄</span>
             </div>
@@ -178,7 +179,7 @@ elif menu == "LoanScope AX":
                             <span>{case["loan_purpose"]}</span>
                             <div class="loan-nav-meta">
                               <div><small>고객번호</small><b>{case.get("customer_no", "0000000")}</b></div>
-                              <div><small>관련담보번호</small><b>{case.get("collateral_no", "000000000001")}</b></div>
+                              <div><small>관련담보번호</small><b>{case.get("collateral_no", "2-1-1")}</b></div>
                             </div>
                           </div>
                           <a id="loan-nav-1" class="loan-link active" href="#loan-step-1"><span class="n">1</span><span><b>기본정보</b><small>기업·대출·시설</small></span></a>
