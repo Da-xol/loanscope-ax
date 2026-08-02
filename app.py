@@ -247,7 +247,12 @@ elif menu == "LoanScope AX":
             unsafe_allow_html=True,
         )
 
-        case_name = st.selectbox("연결 심사사례(▼아래 내용을 변경해보세요▼)", list(cases.keys()), key="loan_case")
+        with st.container(key="loan_case_selector"):
+            case_name = st.selectbox(
+                "연결 심사사례(▼아래 내용을 변경해보세요▼)",
+                list(cases.keys()),
+                key="loan_case",
+            )
         case = cases[case_name]
 
         with st.container(key="loan_workspace"):

@@ -1897,3 +1897,366 @@ img {
     margin-top: 12px !important;
   }
 }
+
+
+/* =========================================================
+   v6.2.1 final overrides
+   1) dark-mode readability
+   2) tablet/mobile top-fixed process navigation
+   3) always-visible connected case selector
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   Dark mode neutralization inside the application workspace.
+   The service has a light brand UI, so Streamlit theme colors
+   must not turn input/output text black-on-black.
+   --------------------------------------------------------- */
+:root {
+  color-scheme: light !important;
+}
+
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+[data-testid="stMainBlockContainer"],
+.st-key-loan_page,
+.st-key-loan_workspace,
+.st-key-loan_case_selector {
+  color-scheme: light !important;
+}
+
+/* Main widget labels and helper text */
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] p,
+[data-testid="stMarkdownContainer"],
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] p,
+[data-testid="stMetricLabel"],
+[data-testid="stMetricLabel"] p,
+[data-testid="stMetricValue"],
+[data-testid="stMetricValue"] div {
+  color: #173d36 !important;
+}
+
+/* Text, number, date and textarea inputs */
+[data-baseweb="input"] > div,
+[data-baseweb="textarea"] > div,
+[data-baseweb="select"] > div,
+[data-testid="stTextInput"] input,
+[data-testid="stNumberInput"] input,
+[data-testid="stDateInput"] input,
+[data-testid="stTextArea"] textarea {
+  background: #ffffff !important;
+  color: #173d36 !important;
+  -webkit-text-fill-color: #173d36 !important;
+  border-color: #d8e5e1 !important;
+}
+
+[data-testid="stTextInput"] input::placeholder,
+[data-testid="stNumberInput"] input::placeholder,
+[data-testid="stDateInput"] input::placeholder,
+[data-testid="stTextArea"] textarea::placeholder {
+  color: #7b918b !important;
+  -webkit-text-fill-color: #7b918b !important;
+  opacity: 1 !important;
+}
+
+/* Selectbox closed value, arrow and popup list */
+[data-baseweb="select"] *,
+[data-baseweb="popover"] *,
+[data-baseweb="menu"] *,
+[role="listbox"] *,
+[role="option"] * {
+  color: #173d36 !important;
+}
+
+[data-baseweb="popover"],
+[data-baseweb="menu"],
+[role="listbox"] {
+  background: #ffffff !important;
+}
+
+[role="option"] {
+  background: #ffffff !important;
+}
+
+[role="option"]:hover,
+[role="option"][aria-selected="true"] {
+  background: #eaf8f4 !important;
+}
+
+/* Date picker */
+[data-baseweb="calendar"],
+[data-baseweb="calendar"] *,
+[data-baseweb="datepicker"],
+[data-baseweb="datepicker"] * {
+  background-color: #ffffff !important;
+  color: #173d36 !important;
+}
+
+/* File uploader */
+[data-testid="stFileUploader"],
+[data-testid="stFileUploader"] section,
+[data-testid="stFileUploaderDropzone"],
+[data-testid="stFileUploaderDropzone"] div {
+  background: #ffffff !important;
+  color: #173d36 !important;
+  border-color: #d8e5e1 !important;
+}
+
+[data-testid="stFileUploaderDropzone"] small,
+[data-testid="stFileUploaderDropzone"] span,
+[data-testid="stFileUploaderDropzone"] p {
+  color: #647d76 !important;
+}
+
+/* Checkbox/toggle text */
+[data-testid="stCheckbox"] label,
+[data-testid="stCheckbox"] label p,
+[data-testid="stToggle"] label,
+[data-testid="stToggle"] label p {
+  color: #173d36 !important;
+}
+
+/* Output containers */
+[data-testid="stAlert"],
+[data-testid="stAlert"] *,
+[data-testid="stStatusWidget"],
+[data-testid="stStatusWidget"] *,
+[data-testid="stExpander"],
+[data-testid="stExpander"] *,
+[data-testid="stMetric"],
+[data-testid="stMetric"] *,
+[data-testid="stDataFrame"],
+[data-testid="stDataFrame"] *,
+[data-testid="stJson"],
+[data-testid="stJson"] * {
+  color: #173d36 !important;
+}
+
+[data-testid="stAlert"],
+[data-testid="stStatusWidget"],
+[data-testid="stExpander"],
+[data-testid="stMetric"],
+[data-testid="stJson"] {
+  background-color: #ffffff !important;
+  border-color: #dce9e5 !important;
+}
+
+/* Result card and generated text */
+.loan-result-card,
+.loan-result-card *,
+.metric,
+.metric *,
+.notice,
+.loan-section-head,
+.loan-section-head *,
+.loan-nav,
+.loan-nav * {
+  color: #173d36 !important;
+}
+
+/* Keep action buttons legible */
+.stButton > button[kind="secondary"],
+.stButton > button[data-testid="baseButton-secondary"] {
+  background: #ffffff !important;
+  color: #173d36 !important;
+  border-color: #d8e5e1 !important;
+}
+
+.stButton > button[kind="primary"],
+.stButton > button[data-testid="baseButton-primary"] {
+  color: #ffffff !important;
+}
+
+/* ---------------------------------------------------------
+   Connected case selector: explicitly visible and layered.
+   --------------------------------------------------------- */
+.st-key-loan_case_selector {
+  display: block !important;
+  position: relative !important;
+  z-index: 920 !important;
+  width: 100% !important;
+  margin: 0 0 14px !important;
+  padding: 10px 12px 12px !important;
+  background: #ffffff !important;
+  border: 1px solid #dce9e5 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 5px 18px rgba(18, 67, 58, .06) !important;
+}
+
+.st-key-loan_case_selector [data-testid="stSelectbox"] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+/* ---------------------------------------------------------
+   Tablet and below: transform the left sidebar into a
+   full-width, fixed-on-scroll top process navigation.
+   --------------------------------------------------------- */
+@media (max-width: 1024px) {
+  /* Header is approximately 68px in tablet layout. */
+  .st-key-loan_case_selector {
+    position: sticky !important;
+    top: 68px !important;
+    z-index: 930 !important;
+    margin-bottom: 8px !important;
+    border-radius: 0 0 14px 14px !important;
+  }
+
+  /* Workspace must become one column at tablet width. */
+  .st-key-loan_workspace > div > [data-testid="stHorizontalBlock"] {
+    display: block !important;
+    width: 100% !important;
+    gap: 0 !important;
+  }
+
+  .st-key-loan_workspace > div > [data-testid="stHorizontalBlock"]
+  > [data-testid="stColumn"] {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    flex: none !important;
+  }
+
+  .st-key-loan_workspace > div > [data-testid="stHorizontalBlock"]
+  > [data-testid="stColumn"]:first-child {
+    position: static !important;
+    width: 100% !important;
+    margin: 0 0 12px !important;
+  }
+
+  .st-key-loan_workspace .st-key-loan_nav {
+    position: sticky !important;
+    top: 164px !important;
+    z-index: 925 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 6px 0 8px !important;
+    background: rgba(247, 251, 250, .97) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+  }
+
+  .st-key-loan_workspace .loan-nav {
+    position: static !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(108px, 1fr)) !important;
+    width: 100% !important;
+    min-width: 620px !important;
+    margin: 0 !important;
+    padding: 8px !important;
+    gap: 6px !important;
+    overflow: visible !important;
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    box-shadow: 0 5px 18px rgba(18, 67, 58, .08) !important;
+  }
+
+  /* Horizontal scrolling is owned by the keyed wrapper. */
+  .st-key-loan_workspace .st-key-loan_nav > div,
+  .st-key-loan_workspace .st-key-loan_nav [data-testid="stVerticalBlock"] {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    overscroll-behavior-inline: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .st-key-loan_workspace .loan-nav-case {
+    display: none !important;
+  }
+
+  .st-key-loan_workspace .loan-link {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 108px !important;
+    min-height: 62px !important;
+    padding: 7px 6px !important;
+    margin: 0 !important;
+    text-align: center !important;
+    border-radius: 10px !important;
+  }
+
+  .st-key-loan_workspace .loan-link .n {
+    width: 24px !important;
+    height: 24px !important;
+    margin: 0 auto 4px !important;
+  }
+
+  .st-key-loan_workspace .loan-link b {
+    font-size: 11px !important;
+    white-space: nowrap !important;
+  }
+
+  .st-key-loan_workspace .loan-link small {
+    display: none !important;
+  }
+
+  .loan-section-anchor {
+    scroll-margin-top: 260px !important;
+  }
+}
+
+/* Mobile header occupies about 102px. Recalculate sticky offsets. */
+@media (max-width: 760px) {
+  .st-key-loan_page {
+    padding-top: 10px !important;
+  }
+
+  .st-key-loan_case_selector {
+    position: sticky !important;
+    top: 102px !important;
+    z-index: 930 !important;
+    padding: 8px 10px 10px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .st-key-loan_case_selector [data-testid="stWidgetLabel"] p {
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+  }
+
+  .st-key-loan_workspace .st-key-loan_nav {
+    position: sticky !important;
+    top: 184px !important;
+    z-index: 925 !important;
+    padding-top: 5px !important;
+  }
+
+  .st-key-loan_workspace .loan-nav {
+    grid-template-columns: repeat(5, minmax(78px, 1fr)) !important;
+    min-width: 430px !important;
+  }
+
+  .st-key-loan_workspace .loan-link {
+    min-width: 78px !important;
+    min-height: 58px !important;
+  }
+
+  .loan-section-anchor {
+    scroll-margin-top: 274px !important;
+  }
+}
+
+/* Very small phones: preserve selector and horizontal step navigation. */
+@media (max-width: 430px) {
+  .st-key-loan_case_selector {
+    top: 102px !important;
+    padding-inline: 8px !important;
+  }
+
+  .st-key-loan_workspace .st-key-loan_nav {
+    top: 184px !important;
+  }
+
+  .st-key-loan_workspace .loan-nav {
+    min-width: 400px !important;
+  }
+}
