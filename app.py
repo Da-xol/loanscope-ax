@@ -12,6 +12,8 @@ import numpy as np
 import planetary_computer
 import rasterio
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from PIL import ExifTags, Image, ImageEnhance, ImageFilter, ImageOps
 from pystac_client import Client
 from rasterio.enums import Resampling
@@ -457,106 +459,195 @@ def render_vworld_satellite(
     zoom: int,
     tile_radius: int,
     api_key: str,
-) -> bytes:
+) -> dict:
     """
-    Download and stitch VWorld Satellite WMTS tiles around one coordinate.
+    Download and stitch VWorld Satellite WMTS tiles.
 
-    The API key is used only on the Streamlit server. It is not embedded in
-    browser-side HTML or JavaScript.
+    Resilience:
+    - retries temporary 502/503/504 responses,
+    - falls back from the requested zoom to lower zoom levels,
+    - tolerates a limited number of missing tiles,
+    - never exposes the API key in raised error messages.
     """
     if not api_key:
         raise ValueError("VWorld API 인증키가 설정되지 않았습니다.")
 
-    fractional_x, fractional_y = _latlon_to_tile(latitude, longitude, zoom)
-    center_x = int(math.floor(fractional_x))
-    center_y = int(math.floor(fractional_y))
-    tile_size = 256
-    grid_size = tile_radius * 2 + 1
-
-    mosaic = Image.new(
-        "RGB",
-        (grid_size * tile_size, grid_size * tile_size),
-        "#eef3f1",
+    retry_policy = Retry(
+        total=3,
+        connect=3,
+        read=3,
+        status=3,
+        backoff_factor=0.7,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset(["GET"]),
+        raise_on_status=False,
     )
 
     session = requests.Session()
+    session.mount("https://", HTTPAdapter(max_retries=retry_policy))
     session.headers.update(
         {
             "User-Agent": SATELLITE_USER_AGENT,
-            "Referer": "https://loanscope-ax.local/",
+            "Accept": "image/jpeg,image/png,image/*;q=0.8,*/*;q=0.5",
         }
     )
 
-    max_index = (2 ** zoom) - 1
+    attempted_zooms = []
+    last_status = None
+    last_message = None
 
-    for grid_y, tile_y in enumerate(
-        range(center_y - tile_radius, center_y + tile_radius + 1)
-    ):
-        for grid_x, tile_x in enumerate(
-            range(center_x - tile_radius, center_x + tile_radius + 1)
+    for effective_zoom in range(int(zoom), 16, -1):
+        attempted_zooms.append(effective_zoom)
+
+        fractional_x, fractional_y = _latlon_to_tile(
+            latitude,
+            longitude,
+            effective_zoom,
+        )
+        center_x = int(math.floor(fractional_x))
+        center_y = int(math.floor(fractional_y))
+        tile_size = 256
+        grid_size = tile_radius * 2 + 1
+
+        mosaic = Image.new(
+            "RGB",
+            (grid_size * tile_size, grid_size * tile_size),
+            "#e9efed",
+        )
+
+        max_index = (2 ** effective_zoom) - 1
+        success_tiles = 0
+        failed_tiles = 0
+
+        for grid_y, tile_y in enumerate(
+            range(center_y - tile_radius, center_y + tile_radius + 1)
         ):
-            wrapped_x = tile_x % (2 ** zoom)
-            if tile_y < 0 or tile_y > max_index:
-                continue
+            for grid_x, tile_x in enumerate(
+                range(center_x - tile_radius, center_x + tile_radius + 1)
+            ):
+                wrapped_x = tile_x % (2 ** effective_zoom)
+                if tile_y < 0 or tile_y > max_index:
+                    failed_tiles += 1
+                    continue
 
-            url = VWORLD_TILE_URL.format(
-                key=api_key,
-                z=zoom,
-                y=tile_y,
-                x=wrapped_x,
-            )
-            response = session.get(url, timeout=20)
-            response.raise_for_status()
-
-            content_type = response.headers.get("Content-Type", "")
-            if "image" not in content_type.lower():
-                raise RuntimeError(
-                    "VWorld가 이미지가 아닌 응답을 반환했습니다. "
-                    "인증키의 WMTS/TMS API 권한과 등록 URL을 확인해주세요."
+                url = VWORLD_TILE_URL.format(
+                    key=api_key,
+                    z=effective_zoom,
+                    y=tile_y,
+                    x=wrapped_x,
                 )
 
-            tile = Image.open(BytesIO(response.content)).convert("RGB")
-            mosaic.paste(
-                tile,
-                (grid_x * tile_size, grid_y * tile_size),
-            )
+                try:
+                    response = session.get(url, timeout=(8, 20))
+                    last_status = response.status_code
 
-    # Locate the exact input coordinate inside the stitched tile grid.
-    local_x = (
-        (fractional_x - (center_x - tile_radius)) * tile_size
-    )
-    local_y = (
-        (fractional_y - (center_y - tile_radius)) * tile_size
-    )
+                    if response.status_code in (401, 403):
+                        raise RuntimeError(
+                            "VWorld 인증이 거부되었습니다. "
+                            "인증키 권한, 등록 도메인·IP, WMTS/TMS API 사용승인을 확인해주세요."
+                        )
 
-    # Draw a visible but compact target marker without extra dependencies.
-    marker_layer = Image.new("RGBA", mosaic.size, (0, 0, 0, 0))
-    from PIL import ImageDraw
-    draw = ImageDraw.Draw(marker_layer)
-    radius = 13
-    x0 = local_x - radius
-    y0 = local_y - radius
-    x1 = local_x + radius
-    y1 = local_y + radius
-    draw.ellipse(
-        (x0, y0, x1, y1),
-        fill=(230, 48, 67, 190),
-        outline=(255, 255, 255, 245),
-        width=3,
-    )
-    draw.ellipse(
-        (local_x - 3, local_y - 3, local_x + 3, local_y + 3),
-        fill=(255, 255, 255, 255),
-    )
+                    if response.status_code == 404:
+                        failed_tiles += 1
+                        continue
 
-    rendered = Image.alpha_composite(
-        mosaic.convert("RGBA"),
-        marker_layer,
-    ).convert("RGB")
+                    if response.status_code >= 500:
+                        failed_tiles += 1
+                        last_message = (
+                            f"VWorld 서버가 일시 오류({response.status_code})를 반환했습니다."
+                        )
+                        continue
 
-    buffer = BytesIO()
-    rendered.save(buffer, format="JPEG", quality=91, optimize=True)
-    return buffer.getvalue()
+                    if response.status_code >= 400:
+                        raise RuntimeError(
+                            f"VWorld 요청이 거부되었습니다(HTTP {response.status_code}). "
+                            "인증키 설정과 API 권한을 확인해주세요."
+                        )
+
+                    content_type = response.headers.get("Content-Type", "")
+                    if "image" not in content_type.lower():
+                        failed_tiles += 1
+                        last_message = "VWorld가 이미지가 아닌 응답을 반환했습니다."
+                        continue
+
+                    tile = Image.open(BytesIO(response.content)).convert("RGB")
+                    mosaic.paste(
+                        tile,
+                        (grid_x * tile_size, grid_y * tile_size),
+                    )
+                    success_tiles += 1
+
+                except RuntimeError:
+                    raise
+                except requests.RequestException:
+                    failed_tiles += 1
+                    last_message = "VWorld 서버 연결이 일시적으로 불안정합니다."
+                except Exception:
+                    failed_tiles += 1
+                    last_message = "VWorld 타일 이미지를 해석하지 못했습니다."
+
+        total_tiles = grid_size * grid_size
+
+        # At least half of the requested tiles must be available.
+        if success_tiles < max(1, math.ceil(total_tiles * 0.5)):
+            continue
+
+        local_x = (
+            (fractional_x - (center_x - tile_radius)) * tile_size
+        )
+        local_y = (
+            (fractional_y - (center_y - tile_radius)) * tile_size
+        )
+
+        from PIL import ImageDraw
+        marker_layer = Image.new("RGBA", mosaic.size, (0, 0, 0, 0))
+        draw = ImageDraw.Draw(marker_layer)
+        radius = 13
+        draw.ellipse(
+            (
+                local_x - radius,
+                local_y - radius,
+                local_x + radius,
+                local_y + radius,
+            ),
+            fill=(230, 48, 67, 190),
+            outline=(255, 255, 255, 245),
+            width=3,
+        )
+        draw.ellipse(
+            (local_x - 3, local_y - 3, local_x + 3, local_y + 3),
+            fill=(255, 255, 255, 255),
+        )
+
+        rendered = Image.alpha_composite(
+            mosaic.convert("RGBA"),
+            marker_layer,
+        ).convert("RGB")
+
+        buffer = BytesIO()
+        rendered.save(buffer, format="JPEG", quality=91, optimize=True)
+
+        return {
+            "image_bytes": buffer.getvalue(),
+            "requested_zoom": int(zoom),
+            "effective_zoom": effective_zoom,
+            "success_tiles": success_tiles,
+            "failed_tiles": failed_tiles,
+        }
+
+    if last_status in (502, 503, 504):
+        raise RuntimeError(
+            "VWorld 영상지도 서버가 현재 일시적으로 응답하지 않습니다. "
+            "잠시 후 다시 시도해주세요. 인증키는 정상 감지된 상태일 수 있습니다."
+        )
+
+    raise RuntimeError(
+        last_message
+        or (
+            "VWorld 영상 타일을 충분히 가져오지 못했습니다. "
+            f"시도한 확대 수준: {', '.join(map(str, attempted_zooms))}"
+        )
+    )
 
 
 def lookup_satellite_image(
@@ -1209,7 +1300,7 @@ elif menu == "LoanScope AX":
                                         with st.spinner(
                                             "VWorld 고해상도 영상지도를 불러오고 있습니다."
                                         ):
-                                            vworld_bytes = render_vworld_satellite(
+                                            vworld_render = render_vworld_satellite(
                                                 satellite_result["latitude"],
                                                 satellite_result["longitude"],
                                                 vworld_zoom,
@@ -1217,10 +1308,13 @@ elif menu == "LoanScope AX":
                                                 vworld_api_key,
                                             )
                                             st.session_state["vworld_result"] = {
-                                                "png_bytes": vworld_bytes,
+                                                "png_bytes": vworld_render["image_bytes"],
                                                 "latitude": satellite_result["latitude"],
                                                 "longitude": satellite_result["longitude"],
-                                                "zoom": vworld_zoom,
+                                                "requested_zoom": vworld_render["requested_zoom"],
+                                                "effective_zoom": vworld_render["effective_zoom"],
+                                                "success_tiles": vworld_render["success_tiles"],
+                                                "failed_tiles": vworld_render["failed_tiles"],
                                                 "tile_radius": vworld_area,
                                                 "source_item_id": scene["item_id"],
                                             }
@@ -1241,11 +1335,25 @@ elif menu == "LoanScope AX":
                                                 "VWorld 현재 제공 영상지도 · "
                                                 f'좌표 {vworld_result["latitude"]:.6f}, '
                                                 f'{vworld_result["longitude"]:.6f} · '
-                                                f'Zoom {vworld_result["zoom"]}'
+                                                f'Zoom {vworld_result["effective_zoom"]}'
                                             ),
                                             use_container_width=True,
                                         )
 
+                                    if (
+                                        vworld_result["effective_zoom"]
+                                        < vworld_result["requested_zoom"]
+                                    ):
+                                        st.warning(
+                                            f'요청한 Zoom {vworld_result["requested_zoom"]}에서 '
+                                            "일부 타일을 가져오지 못해 "
+                                            f'Zoom {vworld_result["effective_zoom"]}으로 자동 대체했습니다.'
+                                        )
+
+                                    st.caption(
+                                        f'정상 타일 {vworld_result["success_tiles"]}개 · '
+                                        f'누락 타일 {vworld_result["failed_tiles"]}개'
+                                    )
                                     st.caption(
                                         "빨간 원은 입력 주소의 좌표입니다. "
                                         "이 영상은 세부 위치 확인용이며, "
