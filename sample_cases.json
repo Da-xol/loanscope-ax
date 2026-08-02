@@ -37,7 +37,9 @@
       "case1_before.png",
       "case1_after.png",
       "case1_submit.png"
-    ]
+    ],
+    "linked_approval_no": "LN20260802000123",
+    "linked_application_no": "AP20260802004567"
   },
   "미착공·공정률 과장 의심": {
     "company_name": "경북스마트물류㈜",
@@ -77,7 +79,9 @@
       "case2_before.png",
       "case2_after.png",
       "case2_submit.png"
-    ]
+    ],
+    "linked_approval_no": "LN20260802000124",
+    "linked_application_no": "AP20260802004568"
   },
   "제출사진 조작·타 장소 의심": {
     "company_name": "미래에너지솔루션㈜",
@@ -116,6 +120,8 @@
       "case3_before.png",
       "case3_after.png",
       "case3_submit.png"
-    ]
+    ],
+    "linked_approval_no": "LN20260802000125",
+    "linked_application_no": "AP20260802004569"
   }
 }

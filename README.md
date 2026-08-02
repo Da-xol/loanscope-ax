@@ -1,16 +1,19 @@
-# LoanScope AX
+# LoanScope AX Beta v2
 
-공간영상과 차주 제출자료를 교차검증해 시설자금의 목적사업 진행 여부와 현장방문 필요도를 판단하는 Streamlit 베타입니다.
+## 주요 개선
+- 상단 메뉴: 기능소개 / LoanScope AX 실행 / QnA
+- 민트·딥민트·네이비 기반 전문 UI
+- iM 캐릭터 이미지 활용
+- 반응형 모바일·태블릿 레이아웃
+- 연결품의번호·연결신청번호 표시
+- 좌측 진행단계 미니 인덱스
+- 기존 점수 산출·EXIF 분석 기능 유지
 
 ## 실행
-
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## 배포
-
-1. GitHub 저장소에 전체 파일 업로드
-2. Streamlit Community Cloud에서 저장소 연결
-3. Main file path를 `app.py`로 지정
+## Streamlit Cloud
+기존 GitHub 저장소의 파일을 이번 버전으로 교체하고 Commit하면 자동 재배포됩니다.
