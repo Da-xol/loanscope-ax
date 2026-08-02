@@ -65,6 +65,7 @@ def calculate_score(checks, documents):
 
 CHAR_BLUE = uri("im_character_blue.png")
 CHAR_SKY = uri("im_character_sky.png")
+LOANSCOPE_LOGO = uri("loanscope_ax_logo.svg")
 THUMB_1 = uri("case2_after.png")
 THUMB_2 = uri("case1_after.png")
 THUMB_3 = uri("case3_submit.png")
@@ -73,20 +74,50 @@ ICONS = {name: uri(f"{name}.svg") for name in ICON_NAMES}
 
 st.markdown(f"<style>{(BASE / 'styles.css').read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
 
-with st.container(key="app_header"):
-    brand_col, menu_col, user_col = st.columns([1.15, 3.2, 1.25], vertical_alignment="center")
-    with brand_col:
-        st.markdown('<div class="brand"><div class="brandmark">iM</div><b>iM뱅크</b></div>', unsafe_allow_html=True)
-    with menu_col:
-        menu = st.radio(
-            "메뉴",
-            ["기능소개", "LoanScope AX", "QnA"],
-            horizontal=True,
-            label_visibility="collapsed",
-            key="main_navigation",
-        )
-    with user_col:
-        st.markdown('<div class="user">심사역 김IM⌄</div>', unsafe_allow_html=True)
+menu_key = st.query_params.get("menu", "feature")
+menu_map = {
+    "feature": "기능소개",
+    "review": "LoanScope AX",
+    "qna": "QnA",
+}
+if menu_key not in menu_map:
+    menu_key = "feature"
+menu = menu_map[menu_key]
+
+def nav_class(key: str) -> str:
+    return "app-nav-link active" if menu_key == key else "app-nav-link"
+
+st.markdown(
+    f"""
+    <header class="global-header">
+      <div class="global-header-inner">
+        <a class="product-brand" href="?menu=feature" aria-label="LoanScope AX 홈">
+          <img src="{LOANSCOPE_LOGO}" alt="LoanScope AX">
+        </a>
+
+        <nav class="global-nav" aria-label="대분류 메뉴">
+          <a class="{nav_class('feature')}" href="?menu=feature">기능소개</a>
+          <a class="{nav_class('review')}" href="?menu=review">LoanScope AX</a>
+          <a class="{nav_class('qna')}" href="?menu=qna">QnA</a>
+        </nav>
+
+        <div class="global-user">
+          <button class="header-icon" type="button" aria-label="알림">
+            <span class="bell-shape"></span>
+          </button>
+          <span class="header-divider"></span>
+          <div class="user-profile">
+            <span class="avatar-frame"><img src="{CHAR_BLUE}" alt="사용자 캐릭터"></span>
+            <span class="user-name">심사역 김IM</span>
+            <span class="user-chevron">⌄</span>
+          </div>
+        </div>
+      </div>
+    </header>
+    """,
+    unsafe_allow_html=True,
+)
+
 
 if menu == "기능소개":
     st.markdown(f'''<section class="hero"><div><h1>기능소개</h1><div class="hero-sub">AI와 데이터로 더 정확하고, 더 빠르고, 더 공정한 여신심사</div></div><div class="hero-copy">LoanScope AX는 위성·드론·현장사진·서류 데이터를 AI로 분석하여<br>담보의 실재성과 사업의 안정성을 입체적으로 검증하는<br>차세대 여신심사 지원 시스템입니다.</div><div class="chars"><img src="{CHAR_BLUE}" alt="iM 캐릭터"><img src="{CHAR_SKY}" alt="iM 캐릭터"></div></section>''', unsafe_allow_html=True)
