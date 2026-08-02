@@ -60,14 +60,86 @@ VWORLD_TILE_URL = (
 
 
 def _secret_value(name: str) -> str:
-    """Read a secret from Streamlit Secrets first, then environment variables."""
+    """
+    Read a secret from common Streamlit deployment layouts.
+
+    Supported:
+    1. Top-level Streamlit Secrets:
+       VWORLD_API_KEY = "..."
+    2. Section-style Streamlit Secrets:
+       [vworld]
+       api_key = "..."
+    3. Environment variable:
+       VWORLD_API_KEY=...
+    """
+    candidates = []
+
     try:
-        value = st.secrets.get(name)
-        if value:
-            return str(value).strip()
+        # Top-level key
+        if name in st.secrets:
+            candidates.append(st.secrets[name])
+
+        # Common section layouts
+        for section_name in ("vworld", "VWORLD", "api", "API"):
+            if section_name in st.secrets:
+                section = st.secrets[section_name]
+                for key_name in (
+                    name,
+                    name.lower(),
+                    "api_key",
+                    "API_KEY",
+                    "key",
+                ):
+                    try:
+                        if key_name in section:
+                            candidates.append(section[key_name])
+                    except Exception:
+                        continue
     except Exception:
         pass
-    return str(os.getenv(name, "")).strip()
+
+    candidates.append(os.getenv(name))
+    candidates.append(os.getenv(name.lower()))
+
+    for value in candidates:
+        if value is None:
+            continue
+
+        cleaned = str(value).strip().strip('"').strip("'")
+        if cleaned:
+            return cleaned
+
+    return ""
+
+
+def _vworld_secret_diagnostics() -> dict:
+    """Return safe key diagnostics without exposing the actual API key."""
+    key = _secret_value("VWORLD_API_KEY")
+    source = "미감지"
+
+    try:
+        if "VWORLD_API_KEY" in st.secrets:
+            source = "Streamlit Secrets 최상위"
+        elif "vworld" in st.secrets:
+            source = "Streamlit Secrets [vworld] 섹션"
+        elif "VWORLD" in st.secrets:
+            source = "Streamlit Secrets [VWORLD] 섹션"
+    except Exception:
+        pass
+
+    if source == "미감지" and os.getenv("VWORLD_API_KEY"):
+        source = "환경변수"
+
+    return {
+        "detected": bool(key),
+        "source": source,
+        "length": len(key),
+        "masked": (
+            f"{key[:4]}...{key[-4:]}"
+            if len(key) >= 10
+            else ("설정됨" if key else "없음")
+        ),
+    }
 
 
 @st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
@@ -1078,22 +1150,33 @@ elif menu == "LoanScope AX":
                             )
 
                             vworld_api_key = _secret_value("VWORLD_API_KEY")
+                            vworld_secret_status = _vworld_secret_diagnostics()
 
                             if not vworld_api_key:
-                                st.info(
-                                    "VWorld 인증키를 설정하면 같은 좌표의 "
-                                    "고해상도 최신 영상지도를 함께 표시합니다."
+                                st.error(
+                                    "VWorld 인증키를 앱 실행환경에서 읽지 못했습니다."
                                 )
                                 st.code(
-                                    'VWORLD_API_KEY = "발급받은_인증키"',
+                                    'VWORLD_API_KEY = "실제_발급키"',
                                     language="toml",
                                 )
                                 st.caption(
-                                    "Streamlit Community Cloud에서는 App settings → "
-                                    "Secrets에 등록합니다. 로컬에서는 "
-                                    ".streamlit/secrets.toml에 등록합니다."
+                                    "Streamlit Community Cloud: App settings → Secrets에 "
+                                    "위 한 줄을 저장한 뒤 앱을 Reboot 하세요."
                                 )
+                                st.caption(
+                                    "로컬 실행: 프로젝트 루트의 "
+                                    ".streamlit/secrets.toml 파일에 저장한 뒤 "
+                                    "Streamlit 프로세스를 완전히 재시작하세요."
+                                )
+                                with st.expander("인증키 감지 진단"):
+                                    st.json(vworld_secret_status)
                             else:
+                                st.success(
+                                    "VWorld 인증키가 감지되었습니다. "
+                                    f'출처: {vworld_secret_status["source"]} · '
+                                    f'키 길이: {vworld_secret_status["length"]}자'
+                                )
                                 vw_col1, vw_col2 = st.columns(2)
                                 with vw_col1:
                                     vworld_zoom = st.selectbox(
