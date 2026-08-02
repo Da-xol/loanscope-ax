@@ -17,3 +17,6 @@ streamlit run app.py
 
 ## Streamlit Cloud
 기존 GitHub 저장소의 파일을 이번 버전으로 교체하고 Commit하면 자동 재배포됩니다.
+
+## v2.1 수정
+- Streamlit Cloud에서 깨지던 캐릭터 이미지를 Base64 임베드 방식으로 변경
