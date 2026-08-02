@@ -127,22 +127,20 @@ elif menu == "LoanScope AX":
         case_name = st.selectbox("연결 심사사례", list(cases.keys()), key="loan_case")
         case = cases[case_name]
 
-        st.markdown(
-            f'''<div class="loan-case-strip">
-              <div class="loan-case-box"><small>심사 대상</small><b>{case["company_name"]}</b></div>
-              <div class="loan-case-box"><small>연결품의번호</small><b>{case.get("linked_approval_no", "XXXXXXXXXXXXXXXX")}</b></div>
-              <div class="loan-case-box"><small>연결신청번호</small><b>{case.get("linked_application_no", "XXXXXXXXXXXXXXXX")}</b></div>
-            </div>''',
-            unsafe_allow_html=True,
-        )
-
         nav_col, main_col = st.columns([0.19, 0.81], gap="large")
 
         with nav_col:
             with st.container(key="loan_nav"):
                 st.markdown(
                     f'''<nav class="loan-nav" aria-label="LoanScope AX 단계">
-                      <div class="loan-nav-case"><strong>{case["company_name"]}</strong><span>{case["loan_purpose"]}</span></div>
+                      <div class="loan-nav-case">
+                        <strong>{case["company_name"]}</strong>
+                        <span>{case["loan_purpose"]}</span>
+                        <div class="loan-nav-meta">
+                          <div><small>고객번호</small><b>{case.get("customer_no", "0000000")}</b></div>
+                          <div><small>관련담보번호</small><b>{case.get("collateral_no", "000000000001")}</b></div>
+                        </div>
+                      </div>
                       <a id="loan-nav-1" class="loan-link active" href="#loan-step-1"><span class="n">1</span><span><b>기본정보</b><small>기업·대출·시설</small></span></a>
                       <a id="loan-nav-2" class="loan-link" href="#loan-step-2"><span class="n">2</span><span><b>서류확인</b><small>필수 증빙 점검</small></span></a>
                       <a id="loan-nav-3" class="loan-link" href="#loan-step-3"><span class="n">3</span><span><b>이미지 비교</b><small>공간영상·현장사진</small></span></a>

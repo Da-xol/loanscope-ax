@@ -39,7 +39,9 @@
       "case1_submit.png"
     ],
     "linked_approval_no": "LN20260802000123",
-    "linked_application_no": "AP20260802004567"
+    "linked_application_no": "AP20260802004567",
+    "customer_no": "4721938",
+    "collateral_no": "202608020001"
   },
   "미착공·공정률 과장 의심": {
     "company_name": "경북스마트물류㈜",
@@ -81,7 +83,9 @@
       "case2_submit.png"
     ],
     "linked_approval_no": "LN20260802000124",
-    "linked_application_no": "AP20260802004568"
+    "linked_application_no": "AP20260802004568",
+    "customer_no": "5832047",
+    "collateral_no": "202608020002"
   },
   "제출사진 조작·타 장소 의심": {
     "company_name": "미래에너지솔루션㈜",
@@ -122,6 +126,8 @@
       "case3_submit.png"
     ],
     "linked_approval_no": "LN20260802000125",
-    "linked_application_no": "AP20260802004569"
+    "linked_application_no": "AP20260802004569",
+    "customer_no": "6943156",
+    "collateral_no": "202608020003"
   }
 }
