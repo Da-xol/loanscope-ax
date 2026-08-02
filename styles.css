@@ -1044,3 +1044,259 @@ div[role="radiogroup"] label:has(input:checked) p{color:#078d78!important}
     width: 1040px;
   }
 }
+
+
+/* =========================================================
+   v6.0 smooth in-app menu — no browser navigation refresh
+   ========================================================= */
+.st-key-global_header {
+  position: sticky;
+  top: 0;
+  z-index: 10000;
+  width: 100%;
+  background: rgba(255,255,255,.98);
+  border-bottom: 1px solid #E3EBE8;
+  box-shadow: 0 2px 8px rgba(22,66,58,.035);
+  backdrop-filter: blur(12px);
+}
+
+.st-key-global_header > div {
+  width: min(100%, 1600px);
+  margin: 0 auto;
+  padding: 0 clamp(20px, 2.5vw, 40px);
+}
+
+.st-key-global_header [data-testid="stHorizontalBlock"] {
+  min-height: 72px;
+  align-items: center !important;
+  gap: 18px;
+}
+
+.st-key-global_header [data-testid="stColumn"] {
+  display: flex;
+  align-items: center;
+}
+
+.smooth-brand {
+  display: flex;
+  align-items: center;
+  min-height: 72px;
+}
+
+.smooth-brand img {
+  display: block;
+  width: min(220px, 100%);
+  height: 48px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.st-key-global_header .stButton {
+  width: 100%;
+}
+
+.st-key-global_header .stButton > button {
+  position: relative;
+  width: 100%;
+  min-height: 72px;
+  padding: 0 6px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #252E30 !important;
+  font-size: 15px !important;
+  font-weight: 720 !important;
+  letter-spacing: -.2px;
+  transition: color .18s ease, background .18s ease;
+}
+
+.st-key-global_header .stButton > button:hover {
+  color: #087B69 !important;
+  background: #F7FCFA !important;
+}
+
+.st-key-global_header .stButton > button[kind="primary"],
+.st-key-global_header .stButton > button[data-testid="baseButton-primary"] {
+  color: #087B69 !important;
+  background: transparent !important;
+}
+
+.st-key-global_header .stButton > button[kind="primary"]::after,
+.st-key-global_header .stButton > button[data-testid="baseButton-primary"]::after {
+  content: "";
+  position: absolute;
+  left: 16%;
+  right: 16%;
+  bottom: 0;
+  height: 4px;
+  border-radius: 4px 4px 0 0;
+  background: #20BFA2;
+}
+
+.smooth-user {
+  width: 100%;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.smooth-bell {
+  position: relative;
+  width: 15px;
+  height: 16px;
+  margin-right: 4px;
+  border: 1.8px solid #304043;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  border-bottom: 0;
+}
+
+.smooth-bell::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  bottom: -3px;
+  height: 1.8px;
+  border-radius: 2px;
+  background: #304043;
+}
+
+.smooth-divider {
+  width: 1px;
+  height: 22px;
+  margin: 0 4px;
+  background: #E1E8E6;
+}
+
+.smooth-avatar {
+  width: 34px;
+  height: 34px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #E6F7F2;
+  border: 1px solid #CDEAE2;
+}
+
+.smooth-avatar img {
+  width: 43px;
+  height: 43px;
+  object-fit: contain;
+  transform: translateY(5px);
+}
+
+.smooth-user-name {
+  color: #303A3C;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.smooth-chevron {
+  color: #6D7B7E;
+  font-size: 14px;
+}
+
+/* Remove button focus outline only in the top navigation. */
+.st-key-global_header .stButton > button:focus:not(:active) {
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .st-key-global_header > div {
+    padding: 0 18px;
+  }
+
+  .smooth-brand img {
+    width: 190px;
+  }
+
+  .smooth-user-name {
+    display: none;
+  }
+
+  .st-key-global_header .stButton > button {
+    font-size: 14px !important;
+  }
+}
+
+/* Mobile: two-row header, still no hard refresh. */
+@media (max-width: 760px) {
+  .st-key-global_header {
+    position: relative;
+  }
+
+  .st-key-global_header > div {
+    padding: 8px 12px 0;
+  }
+
+  .st-key-global_header > div > [data-testid="stHorizontalBlock"] {
+    min-height: auto;
+    display: grid !important;
+    grid-template-columns: minmax(170px, 1fr) auto !important;
+    grid-template-rows: 48px 54px !important;
+    gap: 0 10px !important;
+  }
+
+  .st-key-global_header > div > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+    width: auto !important;
+  }
+
+  .st-key-global_header > div > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100% !important;
+  }
+
+  .st-key-global_header > div > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3) {
+    grid-column: 2;
+    grid-row: 1;
+    width: auto !important;
+  }
+
+  .smooth-brand {
+    min-height: 48px;
+  }
+
+  .smooth-brand img {
+    width: 175px;
+    height: 42px;
+  }
+
+  .smooth-user {
+    min-height: 48px;
+  }
+
+  .smooth-divider,
+  .smooth-user-name {
+    display: none;
+  }
+
+  .st-key-global_header .stButton > button {
+    min-height: 54px;
+    font-size: 14px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .smooth-brand img {
+    width: 158px;
+  }
+
+  .smooth-bell {
+    display: none;
+  }
+
+  .st-key-global_header .stButton > button {
+    font-size: 13px !important;
+  }
+}

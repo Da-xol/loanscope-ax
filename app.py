@@ -75,47 +75,56 @@ ICONS = {name: uri(f"{name}.svg") for name in ICON_NAMES}
 
 st.markdown(f"<style>{(BASE / 'styles.css').read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
 
-menu_key = st.query_params.get("menu", "feature")
-menu_map = {
-    "feature": "기능소개",
-    "review": "LoanScope AX",
-    "qna": "QnA",
-}
-if menu_key not in menu_map:
-    menu_key = "feature"
-menu = menu_map[menu_key]
+if "main_menu" not in st.session_state:
+    st.session_state["main_menu"] = "기능소개"
 
-def nav_class(key: str) -> str:
-    return "app-nav-link active" if menu_key == key else "app-nav-link"
+def set_main_menu(menu_name: str) -> None:
+    st.session_state["main_menu"] = menu_name
 
-header_html = f"""
-<header class="global-header">
-  <div class="global-header-inner">
-    <a class="product-brand" href="?menu=feature" aria-label="LoanScope AX 홈">
-      <img src="{LOANSCOPE_LOGO}" alt="LoanScope AX">
-    </a>
 
-    <nav class="global-nav" aria-label="대분류 메뉴">
-      <a class="{nav_class('feature')}" href="?menu=feature">기능소개</a>
-      <a class="{nav_class('review')}" href="?menu=review">LoanScope AX</a>
-      <a class="{nav_class('qna')}" href="?menu=qna">QnA</a>
-    </nav>
+with st.container(key="global_header"):
+    brand_col, nav_col, user_col = st.columns([0.26, 0.48, 0.26], vertical_alignment="center")
 
-    <div class="global-user">
-      <button class="header-icon" type="button" aria-label="알림">
-        <span class="bell-shape"></span>
-      </button>
-      <span class="header-divider"></span>
-      <div class="user-profile">
-        <span class="avatar-frame"><img src="{CHAR_BLUE}" alt="사용자 캐릭터"></span>
-        <span class="user-name">심사역 김IM</span>
-        <span class="user-chevron">⌄</span>
-      </div>
-    </div>
-  </div>
-</header>
-"""
-st.html(header_html)
+    with brand_col:
+        st.html(
+            f"""
+            <div class="smooth-brand">
+              <img src="{LOANSCOPE_LOGO}" alt="LoanScope AX">
+            </div>
+            """
+        )
+
+    with nav_col:
+        menu_cols = st.columns(3, gap="small")
+        menu_items = ["기능소개", "LoanScope AX", "QnA"]
+        menu_keys = ["feature", "review", "qna"]
+
+        for col, label, key in zip(menu_cols, menu_items, menu_keys):
+            with col:
+                active = st.session_state["main_menu"] == label
+                st.button(
+                    label,
+                    key=f"main_menu_{key}",
+                    use_container_width=True,
+                    type="primary" if active else "secondary",
+                    on_click=set_main_menu,
+                    args=(label,),
+                )
+
+    with user_col:
+        st.html(
+            f"""
+            <div class="smooth-user">
+              <span class="smooth-bell" aria-hidden="true"></span>
+              <span class="smooth-divider"></span>
+              <span class="smooth-avatar"><img src="{CHAR_BLUE}" alt="사용자 캐릭터"></span>
+              <span class="smooth-user-name">심사역 김IM</span>
+              <span class="smooth-chevron">⌄</span>
+            </div>
+            """
+        )
+
+menu = st.session_state["main_menu"]
 
 
 if menu == "기능소개":
