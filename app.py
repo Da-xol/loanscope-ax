@@ -76,6 +76,90 @@ ICONS = {name: uri(f"{name}.svg") for name in ICON_NAMES}
 
 st.markdown(f"<style>{(BASE / 'styles.css').read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
 
+st.markdown(
+    f"""
+<style>
+/* 고정형 로고 버튼: 별도 이미지 레이어 없이 버튼 자체에 로고 표시 */
+.st-key-global_header .st-key-main_logo_home {{
+    display: flex !important;
+    align-items: center !important;
+    width: 220px !important;
+    max-width: 100% !important;
+    height: 52px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}}
+
+.st-key-global_header .st-key-main_logo_home .stButton {{
+    width: 100% !important;
+    height: 52px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}}
+
+.st-key-global_header .st-key-main_logo_home .stButton > button {{
+    display: block !important;
+    width: 220px !important;
+    max-width: 100% !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 10px !important;
+    background-color: transparent !important;
+    background-image: url("{LOANSCOPE_LOGO}") !important;
+    background-repeat: no-repeat !important;
+    background-position: left center !important;
+    background-size: 214px auto !important;
+    box-shadow: none !important;
+    color: transparent !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    cursor: pointer !important;
+}}
+
+.st-key-global_header .st-key-main_logo_home .stButton > button:hover {{
+    background-color: rgba(8, 122, 105, 0.035) !important;
+}}
+
+.st-key-global_header .st-key-main_logo_home .stButton > button:focus,
+.st-key-global_header .st-key-main_logo_home .stButton > button:focus-visible {{
+    outline: 2px solid rgba(32, 191, 162, 0.35) !important;
+    outline-offset: 2px !important;
+    box-shadow: none !important;
+}}
+
+@media (max-width: 1024px) {{
+    .st-key-global_header .st-key-main_logo_home,
+    .st-key-global_header .st-key-main_logo_home .stButton,
+    .st-key-global_header .st-key-main_logo_home .stButton > button {{
+        width: 190px !important;
+    }}
+
+    .st-key-global_header .st-key-main_logo_home .stButton > button {{
+        background-size: 184px auto !important;
+    }}
+}}
+
+@media (max-width: 760px) {{
+    .st-key-global_header .st-key-main_logo_home,
+    .st-key-global_header .st-key-main_logo_home .stButton,
+    .st-key-global_header .st-key-main_logo_home .stButton > button {{
+        width: 170px !important;
+        height: 46px !important;
+        min-height: 46px !important;
+    }}
+
+    .st-key-global_header .st-key-main_logo_home .stButton > button {{
+        background-size: 164px auto !important;
+    }}
+}}
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
 if "main_menu" not in st.session_state:
     st.session_state["main_menu"] = "기능소개"
 
@@ -87,21 +171,12 @@ with st.container(key="global_header"):
     brand_col, nav_col, user_col = st.columns([0.26, 0.48, 0.26], vertical_alignment="center")
 
     with brand_col:
-        with st.container(key="logo_home_area"):
-            st.html(
-                f"""
-<div class="smooth-brand">
-  <img src="{LOANSCOPE_LOGO}" alt="LoanScope AX">
-</div>
-"""
-            )
-
-            st.button(
-                "메인으로 이동",
-                key="logo_home_button",
-                on_click=set_main_menu,
-                args=("기능소개",),
-            )
+        st.button(
+            "LoanScope AX 홈",
+            key="main_logo_home",
+            on_click=set_main_menu,
+            args=("기능소개",),
+        )
 
     with nav_col:
         menu_cols = st.columns(3, gap="small")
