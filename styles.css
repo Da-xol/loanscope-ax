@@ -997,3 +997,50 @@ div[role="radiogroup"] label:has(input:checked) p{color:#078d78!important}
 .global-user {
   display: flex !important;
 }
+
+
+/* =========================================================
+   v5.9 LoanScope AX flow image
+   ========================================================= */
+.flow-image-shell {
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid #DCEAE6;
+  border-radius: 14px;
+  background: #FFFFFF;
+  box-shadow: 0 8px 24px rgba(7, 86, 76, .045);
+}
+
+.flow-process-image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+/* Tablet: retain legibility while allowing horizontal inspection. */
+@media (max-width: 980px) {
+  .flow-image-shell {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  .flow-process-image {
+    width: 1180px;
+    max-width: none;
+  }
+}
+
+/* Mobile: keep the five-stage diagram readable instead of shrinking text too far. */
+@media (max-width: 640px) {
+  .flow-image-shell {
+    border-radius: 12px;
+  }
+
+  .flow-process-image {
+    width: 1040px;
+  }
+}
