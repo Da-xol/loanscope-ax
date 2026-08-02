@@ -1,6 +1,6 @@
 {
   "정상 공장 증축": {
-    "company_name": "대구정밀산업㈜",
+    "company_name": "대구가상산업㈜",
     "industry": "자동차부품 제조업",
     "loan_type": "시설자금대출",
     "loan_amount": 1200000000,
@@ -44,7 +44,7 @@
     "collateral_no": "202608020001"
   },
   "미착공·공정률 과장 의심": {
-    "company_name": "경북스마트물류㈜",
+    "company_name": "경북가상물류㈜",
     "industry": "물류·창고업",
     "loan_type": "시설자금대출",
     "loan_amount": 1800000000,
@@ -88,7 +88,7 @@
     "collateral_no": "202608020002"
   },
   "제출사진 조작·타 장소 의심": {
-    "company_name": "미래에너지솔루션㈜",
+    "company_name": "미래가상솔루션㈜",
     "industry": "태양광 발전업",
     "loan_type": "시설자금대출",
     "loan_amount": 900000000,
