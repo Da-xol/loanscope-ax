@@ -1049,6 +1049,39 @@ div[role="radiogroup"] label:has(input:checked) p{color:#078d78!important}
 /* =========================================================
    v6.0 smooth in-app menu — no browser navigation refresh
    ========================================================= */
+/* LoanScope AX 홈 로고 버튼 */
+.st-key-global_header .st-key-main_logo_home {
+  width: 100%;
+}
+
+.st-key-global_header .st-key-main_logo_home .stButton {
+  width: 100%;
+}
+
+.st-key-global_header .st-key-main_logo_home .stButton > button {
+  width: 220px !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  background-image: url("data:image/svg+xml;base64,여기에_LOGO_BASE64");
+  background-repeat: no-repeat !important;
+  background-position: left center !important;
+  background-size: contain !important;
+  box-shadow: none !important;
+
+  /* 버튼 글자 숨김 */
+  color: transparent !important;
+  font-size: 0 !important;
+}
+
+.st-key-global_header .st-key-main_logo_home .stButton > button:hover {
+  background-color: transparent !important;
+  opacity: 0.86;
+}
+
 .st-key-global_header {
   position: sticky;
   top: 0;
